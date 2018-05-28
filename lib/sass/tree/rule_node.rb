@@ -40,7 +40,7 @@ module Sass::Tree
     # * This is a child rule of another rule
     # * The parent rule has properties, and thus will be rendered
     #
-    # @return [Fixnum]
+    # @return [Integer]
     attr_accessor :tabs
 
     # The entire selector source range for this rule.
@@ -120,13 +120,14 @@ module Sass::Tree
     #
     # @return [{#to_s => #to_s}]
     def debug_info
-      {:filename => filename && ("file://" + Sass::Util.escape_uri(File.expand_path(filename))),
+      {:filename => filename &&
+         ("file://" + URI::DEFAULT_PARSER.escape(File.expand_path(filename))),
        :line => line}
     end
 
     # A rule node is invisible if it has only placeholder selectors.
     def invisible?
-      resolved_rules.members.all? {|seq| seq.has_placeholder?}
+      resolved_rules.members.all? {|seq| seq.invisible?}
     end
 
     private
@@ -137,10 +138,17 @@ module Sass::Tree
 
       # We don't use real filename/line info because we don't have it yet.
       # When we get it, we'll set it on the parsed rules if possible.
-      parser = Sass::SCSS::StaticParser.new(@rule.join.strip, nil, nil, 1)
-      # rubocop:disable RescueModifier
-      @parsed_rules = parser.parse_selector rescue nil
-      # rubocop:enable RescueModifier
+      parser = nil
+      warnings = Sass.logger.capture do
+        parser = Sass::SCSS::StaticParser.new(@rule.join.strip, nil, nil, 1)
+        # rubocop:disable RescueModifier
+        @parsed_rules = parser.parse_selector rescue nil
+        # rubocop:enable RescueModifier
+      end
+
+      # If parsing produces a warning, throw away the result so we can parse
+      # later with the real filename info.
+      @parsed_rules = nil unless warnings.empty?
     end
   end
 end

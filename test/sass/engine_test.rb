@@ -1,4 +1,3 @@
-#!/usr/bin/env ruby
 # -*- coding: utf-8 -*-
 require File.dirname(__FILE__) + '/../test_helper'
 require File.dirname(__FILE__) + '/test_helper'
@@ -98,8 +97,6 @@ MSG
     "a\n\t\tb: c\n\tb: c" => ["Inconsistent indentation: 1 tab was used for indentation, but the rest of the document was indented using 2 tabs.", 3],
     "a\n  b: c\n   b: c" => ["Inconsistent indentation: 3 spaces were used for indentation, but the rest of the document was indented using 2 spaces.", 3],
     "a\n  b: c\n  a\n   d: e" => ["Inconsistent indentation: 3 spaces were used for indentation, but the rest of the document was indented using 2 spaces.", 4],
-    "a\n  b: c\na\n    d: e" => ["The line was indented 2 levels deeper than the previous line.", 4],
-    "a\n  b: c\n  a\n        d: e" => ["The line was indented 3 levels deeper than the previous line.", 4],
     "a\n \tb: c" => ["Indentation can't use both tabs and spaces.", 2],
     "=a(" => 'Invalid CSS after "(": expected variable (e.g. $foo), was ""',
     "=a(b)" => 'Invalid CSS after "(": expected variable (e.g. $foo), was "b)"',
@@ -139,7 +136,7 @@ MSG
     '@for $a from "foo" to 1' => '"foo" is not an integer.',
     '@for $a from 1 to "2"' => '"2" is not an integer.',
     '@for $a from 1 to "foo"' => '"foo" is not an integer.',
-    '@for $a from 1 to 1.232323' => '1.23232 is not an integer.',
+    '@for $a from 1 to 1.23232323232' => '1.2323232323 is not an integer.',
     '@for $a from 1px to 3em' => "Incompatible units: 'em' and 'px'.",
     '@if' => "Invalid if directive '@if': expected expression.",
     '@while' => "Invalid while directive '@while': expected expression.",
@@ -288,10 +285,10 @@ ERROR
   def test_exception_line
     to_render = <<SASS
 rule
-  :prop val
+  prop: val
   // comment!
 
-  :broken
+  broken:
 SASS
     begin
       Sass::Engine.new(to_render).render
@@ -305,10 +302,10 @@ SASS
   def test_exception_location
     to_render = <<SASS
 rule
-  :prop val
+  prop: val
   // comment!
 
-  :broken
+  broken:
 SASS
     begin
       Sass::Engine.new(to_render, :filename => FAKE_FILE_NAME, :line => (__LINE__-7)).render
@@ -749,22 +746,22 @@ SASS
 
   def test_basic_multiline_selector
     assert_equal("#foo #bar,\n#baz #boom {\n  foo: bar; }\n",
-                 render("#foo #bar,\n#baz #boom\n  :foo bar"))
+                 render("#foo #bar,\n#baz #boom\n  foo: bar"))
     assert_equal("#foo #bar,\n#foo #baz {\n  foo: bar; }\n",
-                 render("#foo\n  #bar,\n  #baz\n    :foo bar"))
+                 render("#foo\n  #bar,\n  #baz\n    foo: bar"))
     assert_equal("#foo,\n#bar {\n  foo: bar; }\n  #foo #baz,\n  #bar #baz {\n    foo: bar; }\n",
-                 render("#foo,\n#bar\n  :foo bar\n  #baz\n    :foo bar"))
+                 render("#foo,\n#bar\n  foo: bar\n  #baz\n    foo: bar"))
     assert_equal("#foo #bar, #baz #boom { foo: bar; }\n",
-                 render("#foo #bar,\n#baz #boom\n  :foo bar", :style => :compact))
+                 render("#foo #bar,\n#baz #boom\n  foo: bar", :style => :compact))
                  
     assert_equal("#foo #bar,#baz #boom{foo:bar}\n",
-                 render("#foo #bar,\n#baz #boom\n  :foo bar", :style => :compressed))
+                 render("#foo #bar,\n#baz #boom\n  foo: bar", :style => :compressed))
 
     assert_equal("#foo #bar,\n#baz #boom {\n  foo: bar; }\n",
-                 render("#foo #bar,,\n,#baz #boom,\n  :foo bar"))
+                 render("#foo #bar,,\n,#baz #boom,\n  foo: bar"))
 
     assert_equal("#bip #bop {\n  foo: bar; }\n",
-                 render("#bip #bop,, ,\n  :foo bar"))
+                 render("#bip #bop,, ,\n  foo: bar"))
   end
 
   def test_complex_multiline_selector
@@ -783,7 +780,7 @@ SASS
     end
 
     begin
-      render("a\n  :b c", :property_syntax => :new)
+      silence_warnings {render("a\n  :b c", :property_syntax => :new)}
       assert_equal(2, e.sass_line)
     rescue Sass::SyntaxError => e
       assert_equal("Illegal property syntax: can't use old syntax when :property_syntax => :new is set.",
@@ -806,53 +803,53 @@ SASS
   def test_directive
     assert_equal("@a b;\n", render("@a b"))
 
-    assert_equal("@a {\n  b: c; }\n", render("@a\n  :b c"))
-    assert_equal("@a { b: c; }\n", render("@a\n  :b c", :style => :compact))
-    assert_equal("@a {\n  b: c;\n}\n", render("@a\n  :b c", :style => :expanded))
-    assert_equal("@a{b:c}\n", render("@a\n  :b c", :style => :compressed))
+    assert_equal("@a {\n  b: c; }\n", render("@a\n  b: c"))
+    assert_equal("@a { b: c; }\n", render("@a\n  b: c", :style => :compact))
+    assert_equal("@a {\n  b: c;\n}\n", render("@a\n  b: c", :style => :expanded))
+    assert_equal("@a{b:c}\n", render("@a\n  b: c", :style => :compressed))
 
     assert_equal("@a {\n  b: c;\n  d: e; }\n",
-                 render("@a\n  :b c\n  :d e"))
+                 render("@a\n  b: c\n  d: e"))
     assert_equal("@a { b: c; d: e; }\n",
-                 render("@a\n  :b c\n  :d e", :style => :compact))
+                 render("@a\n  b: c\n  d: e", :style => :compact))
     assert_equal("@a {\n  b: c;\n  d: e;\n}\n",
-                 render("@a\n  :b c\n  :d e", :style => :expanded))
+                 render("@a\n  b: c\n  d: e", :style => :expanded))
     assert_equal("@a{b:c;d:e}\n",
-                 render("@a\n  :b c\n  :d e", :style => :compressed))
+                 render("@a\n  b: c\n  d: e", :style => :compressed))
 
     assert_equal("@a {\n  #b {\n    c: d; } }\n",
-                 render("@a\n  #b\n    :c d"))
+                 render("@a\n  #b\n    c: d"))
     assert_equal("@a { #b { c: d; } }\n",
-                 render("@a\n  #b\n    :c d", :style => :compact))
+                 render("@a\n  #b\n    c: d", :style => :compact))
     assert_equal("@a {\n  #b {\n    c: d;\n  }\n}\n",
-                 render("@a\n  #b\n    :c d", :style => :expanded))
+                 render("@a\n  #b\n    c: d", :style => :expanded))
     assert_equal("@a{#b{c:d}}\n",
-                 render("@a\n  #b\n    :c d", :style => :compressed))
+                 render("@a\n  #b\n    c: d", :style => :compressed))
 
     assert_equal("@a {\n  #b {\n    a: b; }\n    #b #c {\n      d: e; } }\n",
-                 render("@a\n  #b\n    :a b\n    #c\n      :d e"))
+                 render("@a\n  #b\n    a: b\n    #c\n      d: e"))
     assert_equal("@a { #b { a: b; }\n  #b #c { d: e; } }\n",
-                 render("@a\n  #b\n    :a b\n    #c\n      :d e", :style => :compact))
+                 render("@a\n  #b\n    a: b\n    #c\n      d: e", :style => :compact))
     assert_equal("@a {\n  #b {\n    a: b;\n  }\n  #b #c {\n    d: e;\n  }\n}\n",
-                 render("@a\n  #b\n    :a b\n    #c\n      :d e", :style => :expanded))
+                 render("@a\n  #b\n    a: b\n    #c\n      d: e", :style => :expanded))
     assert_equal("@a{#b{a:b}#b #c{d:e}}\n",
-                 render("@a\n  #b\n    :a b\n    #c\n      :d e", :style => :compressed))
+                 render("@a\n  #b\n    a: b\n    #c\n      d: e", :style => :compressed))
                  
     assert_equal("@a {\n  #foo,\n  #bar {\n    b: c; } }\n",
-                 render("@a\n  #foo, \n  #bar\n    :b c"))
+                 render("@a\n  #foo, \n  #bar\n    b: c"))
     assert_equal("@a { #foo, #bar { b: c; } }\n",
-                 render("@a\n  #foo, \n  #bar\n    :b c", :style => :compact))
+                 render("@a\n  #foo, \n  #bar\n    b: c", :style => :compact))
     assert_equal("@a {\n  #foo,\n  #bar {\n    b: c;\n  }\n}\n",
-                 render("@a\n  #foo, \n  #bar\n    :b c", :style => :expanded))
+                 render("@a\n  #foo, \n  #bar\n    b: c", :style => :expanded))
     assert_equal("@a{#foo,#bar{b:c}}\n",
-                 render("@a\n  #foo, \n  #bar\n    :b c", :style => :compressed))
+                 render("@a\n  #foo, \n  #bar\n    b: c", :style => :compressed))
 
     to_render = <<END
 @a
-  :b c
+  b: c
   #d
-    :e f
-  :g h
+    e: f
+  g: h
 END
     rendered = <<END
 @a { b: c;
@@ -1141,7 +1138,7 @@ black {
   color: #000; }
 CSS
 =foo($a: #FFF)
-  :color $a
+  color: $a
 white
   +foo
 black
@@ -1165,9 +1162,9 @@ three {
 CSS
 $a: 5px
 =foo($a, $b: 1px, $c: 3px + $b)
-  :color $a
-  :padding $b
-  :margin $c
+  color: $a
+  padding: $b
+  margin: $c
 one
   +foo(#fff)
 two
@@ -1793,7 +1790,7 @@ SASS
 
   def test_loud_comment_is_evaluated
     assert_equal <<CSS, render(<<SASS)
-/*! Hue: 327.21649deg */
+/*! Hue: 327.2164948454deg */
 CSS
 /*! Hue: \#{hue(#f836a0)}
 SASS
@@ -2598,29 +2595,29 @@ SASS
   border-style: solid; }
 RESULT
 .box
-  :border
-    //:color black
-    :style solid
+  border:
+    //color: black
+    style: solid
 SOURCE
 
     assert_equal(<<RESULT, render(<<SOURCE))
 .box {
-  /* :color black */
+  /* color: black */
   border-style: solid; }
 RESULT
 .box
-  :border
-    /* :color black
-    :style solid
+  border:
+    /* color: black
+    style: solid
 SOURCE
 
     assert_equal(<<RESULT, render(<<SOURCE, :style => :compressed))
 .box{border-style:solid}
 RESULT
 .box
-  :border
-    /*:color black
-    :style solid
+  border:
+    /*color: black
+    style: solid
 SOURCE
   end
 
@@ -2698,15 +2695,6 @@ CSS
 a
   b: option("style")
 SASS
-  end
-
-  def test_mixin_no_arg_error
-    assert_raise_message(Sass::SyntaxError, 'Invalid CSS after "($bar,": expected variable (e.g. $foo), was ")"') do
-      render(<<SASS)
-=foo($bar,)
-  bip: bap
-SASS
-    end
   end
 
   def test_import_with_commas_in_url
@@ -3324,13 +3312,13 @@ SASS
 
   def test_numeric_formatting_of_integers
     assert_equal(<<CSS, render(<<SASS, :syntax => :scss, :style => :compressed))
-a{near:3.00001;plus:3;minus:3;negative:-3}
+a{near:3.0000000001;plus:3;minus:3;negative:-3}
 CSS
 a {
-  near: (3 + 0.00001);
-  plus: (3 + 0.0000001);
-  minus: (3 - 0.0000001);
-  negative: (-3 + 0.0000001);
+  near: (3 + 0.0000000001);
+  plus: (3 + 0.000000000001);
+  minus: (3 - 0.000000000001);
+  negative: (-3 + 0.000000000001);
 }
 SASS
   end
@@ -3391,10 +3379,80 @@ CSS
 SASS
   end
 
+  def test_trailing_commas_in_arglists
+    assert_equal(<<CSS, render(<<SASS, :style => :nested))
+.includes {
+  one-positional-arg: positional 1 a;
+  two-positional-args: positional 2 a b;
+  one-keyword-arg: keyword 1 z;
+  two-keyword-args: keyword 2 y z;
+  mixed-args: mixed 2 y z; }
+
+.calls {
+  one-positional-arg: positional 1 a;
+  two-positional-args: positional 2 a b;
+  one-keyword-arg: keyword 1 z;
+  two-keyword-args: keyword 2 y z;
+  mixed-args: mixed 2 y z; }
+CSS
+=one-positional-arg($a,)
+  one-positional-arg: positional 1 $a
+
+=two-positional-args($a, $b,)
+  two-positional-args: positional 2 $a $b
+
+=one-keyword-arg($a: a,)
+  one-keyword-arg: keyword 1 $a
+
+=two-keyword-args($a: a, $b: b,)
+  two-keyword-args: keyword 2 $a $b
+
+=mixed-args($a, $b: b,)
+  mixed-args: mixed 2 $a $b
+
+@function one-positional-arg($a)
+  @return positional 1 $a
+
+@function two-positional-args($a, $b)
+  @return positional 2 $a $b
+
+@function one-keyword-arg($a: a)
+  @return keyword 1 $a
+
+@function two-keyword-args($a: a, $b: b)
+  @return keyword 2 $a $b
+
+@function mixed-args($a, $b: b)
+  @return mixed 2 $a $b
+
+
+.includes
+  +one-positional-arg(a,)
+  +two-positional-args(a, b,)
+  +one-keyword-arg($a: z,)
+  +two-keyword-args($a: y, $b: z,)
+  +mixed-args(y, $b: z,)
+
+
+.calls
+  one-positional-arg: one-positional-arg(a)
+  two-positional-args: two-positional-args(a, b)
+  one-keyword-arg: one-keyword-arg($a: z)
+  two-keyword-args: two-keyword-args($a: y, $b: z)
+  mixed-args: mixed-args(y, $b: z)
+SASS
+  end
+
   private
 
   def assert_hash_has(hash, expected)
-    expected.each {|k, v| assert_equal(v, hash[k])}
+    expected.each do |k, v|
+      if v.nil?
+        assert_nil(hash[k])
+      else
+        assert_equal(v, hash[k])
+      end
+    end
   end
 
   def assert_renders_encoded(css, sass)

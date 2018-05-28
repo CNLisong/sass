@@ -1,5 +1,7 @@
 # A visitor for converting a dynamic Sass tree into a static Sass tree.
 class Sass::Tree::Visitors::Perform < Sass::Tree::Visitors::Base
+  @@function_name_deprecation = Sass::Deprecation.new
+
   class << self
     # @param root [Tree::Node] The root node of the tree to visit.
     # @param environment [Sass::Environment] The lexical environment.
@@ -280,8 +282,7 @@ class Sass::Tree::Visitors::Perform < Sass::Tree::Visitors::Base
 
     if node.normalized_name == 'calc' || node.normalized_name == 'element' ||
         node.name == 'expression' || node.name == 'url'
-      Sass::Util.sass_warn <<WARNING
-DEPRECATION WARNING on line #{node.line}#{" of #{node.filename}" if node.filename}:
+      @@function_name_deprecation.warn(node.filename, node.line, <<WARNING)
 Naming a function "#{node.name}" is disallowed and will be an error in future versions of Sass.
 This name conflicts with an existing CSS function with special parse rules.
 WARNING
@@ -289,7 +290,7 @@ WARNING
 
     @environment.set_local_function(node.name,
       Sass::Callable.new(node.name, node.args, node.splat, env,
-                         node.children, false, "function"))
+                         node.children, false, "function", :stylesheet))
     []
   end
 
@@ -340,7 +341,7 @@ WARNING
     env = Sass::Environment.new(@environment, node.options)
     @environment.set_local_mixin(node.name,
       Sass::Callable.new(node.name, node.args, node.splat, env,
-                         node.children, node.has_content, "mixin"))
+                         node.children, node.has_content, "mixin", :stylesheet))
     []
   end
 
@@ -394,9 +395,19 @@ WARNING
   # Runs any SassScript that may be embedded in a property.
   def visit_prop(node)
     node.resolved_name = run_interp(node.name)
-    val = node.value.perform(@environment)
-    node.resolved_value = val.to_s
-    node.value_source_range = val.source_range if val.source_range
+
+    # If the node's value is just a variable or similar, we may get a useful
+    # source range from evaluating it.
+    if node.value.length == 1 && node.value.first.is_a?(Sass::Script::Tree::Node)
+      result = node.value.first.perform(@environment)
+      node.resolved_value = result.to_s
+      node.value_source_range = result.source_range if result.source_range
+    elsif node.custom_property?
+      node.resolved_value = run_interp_no_strip(node.value)
+    else
+      node.resolved_value = run_interp(node.value)
+    end
+
     yield
   end
 
@@ -482,9 +493,11 @@ WARNING
   def visit_warn(node)
     res = node.expr.perform(@environment)
     res = res.value if res.is_a?(Sass::Script::Value::String)
-    msg = "WARNING: #{res}\n         "
-    msg << @environment.stack.to_s.gsub("\n", "\n         ") << "\n"
-    Sass::Util.sass_warn msg
+    @environment.stack.with_directive(node.filename, node.line, "@warn") do
+      msg = "WARNING: #{res}\n         "
+      msg << @environment.stack.to_s.gsub("\n", "\n         ") << "\n"
+      Sass::Util.sass_warn msg
+    end
     []
   end
 
@@ -555,7 +568,7 @@ WARNING
     end
 
     files << node.filename << node.imported_file.options[:filename]
-    msg << "\n" << Sass::Util.enum_cons(files, 2).map do |m1, m2|
+    msg << "\n" << files.each_cons(2).map do |m1, m2|
       "    #{m1} imports #{m2}"
     end.join("\n")
     raise Sass::SyntaxError.new(msg)

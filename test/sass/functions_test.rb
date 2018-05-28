@@ -1,4 +1,3 @@
-#!/usr/bin/env ruby
 require 'minitest/autorun'
 require File.dirname(__FILE__) + '/../test_helper'
 require File.dirname(__FILE__) + '/test_helper'
@@ -21,7 +20,9 @@ module Sass::Script::Functions
   declare :only_kw_args, [], :var_kwargs => true
 
   def deprecated_arg_fn(arg1, arg2, arg3 = nil)
-    Sass::Script::Value::List.new([arg1, arg2, arg3 || Sass::Script::Value::Null.new], :space)
+    Sass::Script::Value::List.new(
+      [arg1, arg2, arg3 || Sass::Script::Value::Null.new],
+      separator: :space)
   end
   declare :deprecated_arg_fn, [:arg1, :arg2, :arg3], :deprecated => [:arg_1, :arg_2, :arg3]
   declare :deprecated_arg_fn, [:arg1, :arg2], :deprecated => [:arg_1, :arg_2]
@@ -411,8 +412,8 @@ WARNING
     assert_equal("rgba(0, 0, 0, 0.3)", evaluate("transparentize(rgba(0, 0, 0, 0.5), 0.2)"))
     assert_equal("rgba(0, 0, 0, 0.1)", evaluate("transparentize(rgba(0, 0, 0, 0.2), 0.1)"))
     assert_equal("rgba(0, 0, 0, 0.2)", evaluate("fade-out(rgba(0, 0, 0, 0.5), 0.3px)"))
-    assert_equal("transparent", evaluate("fade_out(rgba(0, 0, 0, 0.2), 0.2)"))
-    assert_equal("transparent", evaluate("transparentize(rgba(0, 0, 0, 0.2), 1)"))
+    assert_equal("rgba(0, 0, 0, 0)", evaluate("fade_out(rgba(0, 0, 0, 0.2), 0.2)"))
+    assert_equal("rgba(0, 0, 0, 0)", evaluate("transparentize(rgba(0, 0, 0, 0.2), 1)"))
     assert_equal("rgba(0, 0, 0, 0.2)", evaluate("transparentize(rgba(0, 0, 0, 0.2), 0)"))
     assert_equal("rgba(0, 0, 0, 0.2)", evaluate("transparentize($color: rgba(0, 0, 0, 0.2), $amount: 0)"))
     assert_equal("rgba(0, 0, 0, 0.2)", evaluate("fade-out($color: rgba(0, 0, 0, 0.2), $amount: 0)"))
@@ -876,12 +877,22 @@ WARNING
 
   def test_invert
     assert_equal("#112233", evaluate("invert(#edc)"))
+    assert_equal("#d8cabd", evaluate("invert(#edc, 10%)"))
     assert_equal("rgba(245, 235, 225, 0.5)", evaluate("invert(rgba(10, 20, 30, 0.5))"))
+    assert_equal("rgba(34, 42, 50, 0.5)", evaluate("invert(rgba(10, 20, 30, 0.5), 10%)"))
     assert_equal("invert(20%)", evaluate("invert(20%)"))
   end
 
   def test_invert_tests_types
     assert_error_message("$color: \"foo\" is not a color for `invert'", "invert(\"foo\")")
+    assert_error_message("$weight: \"foo\" is not a number for `invert'", "invert(#edc, \"foo\")")
+  end
+
+  def test_invert_tests_bounds
+    assert_error_message("Weight -0.001 must be between 0% and 100% for `invert'",
+      "invert(#edc, -0.001)")
+    assert_error_message("Weight 100.001 must be between 0% and 100% for `invert'",
+      "invert(#edc, 100.001)")
   end
 
   def test_unquote
@@ -891,6 +902,7 @@ WARNING
     assert_warning <<MESSAGE do
 DEPRECATION WARNING: Passing blue, a non-string value, to unquote()
 will be an error in future versions of Sass.
+        on line 1 of test_unquote_inline.scss
 MESSAGE
       assert_equal('blue', evaluate('unquote(blue)'))
     end
@@ -1306,7 +1318,7 @@ SCSS
     evaluate("rgb($red: 255, $green: 255)")
     flunk("Expected exception")
   rescue Sass::SyntaxError => e
-    assert_equal("Function rgb requires an argument named $blue", e.message)
+    assert_equal("wrong number of arguments (2 for 3) for `rgb'", e.message)
   end
 
   def test_keyword_args_with_extra_argument
@@ -1467,30 +1479,56 @@ SCSS
   end
 
   def test_call_with_positional_arguments
-    assert_equal evaluate("lighten(blue, 5%)"), evaluate("call(lighten, blue, 5%)")
+    # TODO: Remove this block in 4.0
+    Sass::Util.silence_sass_warnings do
+      assert_equal evaluate("lighten(blue, 5%)"), evaluate("call(lighten, blue, 5%)")
+    end
+    assert_equal evaluate("lighten(blue, 5%)"), evaluate("call(get-function(lighten), blue, 5%)")
   end
 
   def test_call_with_keyword_arguments
+    # TODO: Remove this block in 4.0
+    Sass::Util.silence_sass_warnings do
+      assert_equal(
+        evaluate("lighten($color: blue, $amount: 5%)"),
+        evaluate("call(lighten, $color: blue, $amount: 5%)"))
+    end
     assert_equal(
       evaluate("lighten($color: blue, $amount: 5%)"),
-      evaluate("call(lighten, $color: blue, $amount: 5%)"))
+      evaluate("call(get-function(lighten), $color: blue, $amount: 5%)"))
   end
 
   def test_call_with_keyword_and_positional_arguments
+    # TODO: Remove this block in 4.0
+    Sass::Util.silence_sass_warnings do
+      assert_equal(
+        evaluate("lighten(blue, $amount: 5%)"),
+        evaluate("call(lighten, blue, $amount: 5%)"))
+    end
     assert_equal(
       evaluate("lighten(blue, $amount: 5%)"),
-      evaluate("call(lighten, blue, $amount: 5%)"))
+      evaluate("call(get-function(lighten), blue, $amount: 5%)"))
   end
 
   def test_call_with_dynamic_name
+    # TODO: Remove this block in 4.0
+    Sass::Util.silence_sass_warnings do
+      assert_equal(
+        evaluate("lighten($color: blue, $amount: 5%)"),
+        evaluate("call($fn, $color: blue, $amount: 5%)",
+          env("fn" => Sass::Script::Value::String.new("lighten"))))
+    end
     assert_equal(
       evaluate("lighten($color: blue, $amount: 5%)"),
       evaluate("call($fn, $color: blue, $amount: 5%)",
-        env("fn" => Sass::Script::String.new("lighten"))))
+        env("fn" => Sass::Script::Value::Function.new(
+          Sass::Callable.new("lighten", nil, nil, nil, nil, nil, "function", :builtin)))))
   end
 
+  # TODO: Remove this test in 4.0
   def test_call_uses_local_scope
-    assert_equal <<CSS, render(<<SCSS)
+    Sass::Util.silence_sass_warnings do
+      assert_equal <<CSS, render(<<SCSS)
 .first-scope {
   a: local; }
 
@@ -1508,18 +1546,24 @@ CSS
   a: call(foo);
 }
 SCSS
+    end
   end
 
   def test_call_unknown_function
-    assert_equal evaluate("unknown(red, blue)"), evaluate("call(unknown, red, blue)")
+    # TODO: Remove this block in 4.0
+    Sass::Util.silence_sass_warnings do
+      assert_equal evaluate("unknown(red, blue)"), evaluate("call(unknown, red, blue)")
+    end
+    assert_equal evaluate("unknown(red, blue)"), evaluate("call(get-function(unknown, $css: true), red, blue)")
   end
 
   def test_call_with_non_string_argument
-    assert_error_message "$name: 3px is not a string for `call'", "call(3px)"
+    assert_error_message "$function: 3px is not a function for `call'", "call(3px)"
   end
 
   def test_errors_in_called_function
-    assert_error_message "$color: 3px is not a color for `lighten'", "call(lighten, 3px, 5%)"
+    assert_error_message "$color: 3px is not a color for `lighten'",
+      "call(get-function(lighten), 3px, 5%)"
   end
 
   def test_variable_exists
@@ -1637,7 +1681,7 @@ SCSS
 
   def test_random
     Sass::Script::Functions.random_seed = 1
-    assert_equal "0.41702", evaluate("random()")
+    assert_equal "0.4170220047", evaluate("random()")
     assert_equal "13", evaluate("random(100)")
   end
 
@@ -1841,8 +1885,11 @@ WARNING
     assert_equal(".bar", evaluate("selector-replace('.foo', '.foo', '.bar')"))
     assert_equal(".foo.baz", evaluate("selector-replace('.foo.bar', '.bar', '.baz')"))
     assert_equal(".a .foo.baz", evaluate("selector-replace('.foo.bar', '.bar', '.a .baz')"))
-    assert_equal(".foo.bar", evaluate("selector-replace('.foo.bar', '.baz.bar', '.qux')"))
-    assert_equal(".bar.qux", evaluate("selector-replace('.foo.bar.baz', '.foo.baz', '.qux')"))
+
+    # These shouldn't warn since we still support componud targets for selector
+    # functions.
+    assert_no_warning {assert_equal(".foo.bar", evaluate("selector-replace('.foo.bar', '.baz.bar', '.qux')"))}
+    assert_no_warning {assert_equal(".bar.qux", evaluate("selector-replace('.foo.bar.baz', '.foo.baz', '.qux')"))}
 
     assert_equal(":not(.bar)", evaluate("selector-replace(':not(.foo)', '.foo', '.bar')"))
     assert_equal(".bar", evaluate("selector-replace(':not(.foo)', ':not(.foo)', '.bar')"))
@@ -1955,7 +2002,7 @@ WARNING
   end
 
   def perform(value, environment = env)
-    Sass::Script::Parser.parse(value, 0, 0).perform(environment)
+    Sass::Script::Parser.parse(value, 1, 0, {:filename => "#{test_name}_inline.scss"}).perform(environment)
   end
 
   def render(sass, options = {})

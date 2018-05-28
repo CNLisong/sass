@@ -19,13 +19,13 @@ module Sass
       # `source_range`: \[`Sass::Source::Range`\]
       # : The range in the source file in which the token appeared.
       #
-      # `pos`: \[`Fixnum`\]
+      # `pos`: \[`Integer`\]
       # : The scanner position at which the SassScript token appeared.
       Token = Struct.new(:type, :value, :source_range, :pos)
 
       # The line number of the lexer's current position.
       #
-      # @return [Fixnum]
+      # @return [Integer]
       def line
         return @line unless @tok
         @tok.source_range.start_pos.line
@@ -34,7 +34,7 @@ module Sass
       # The number of bytes into the current line
       # of the lexer's current position (1-based).
       #
-      # @return [Fixnum]
+      # @return [Integer]
       def offset
         return @offset unless @tok
         @tok.source_range.start_pos.offset
@@ -51,6 +51,8 @@ module Sass
         ':' => :colon,
         '(' => :lparen,
         ')' => :rparen,
+        '[' => :lsquare,
+        ']' => :rsquare,
         ',' => :comma,
         'and' => :and,
         'or' => :or,
@@ -142,12 +144,12 @@ module Sass
       }
 
       # @param str [String, StringScanner] The source text to lex
-      # @param line [Fixnum] The 1-based line on which the SassScript appears.
+      # @param line [Integer] The 1-based line on which the SassScript appears.
       #   Used for error reporting and sourcemap building
-      # @param offset [Fixnum] The 1-based character (not byte) offset in the line in the source.
+      # @param offset [Integer] The 1-based character (not byte) offset in the line in the source.
       #   Used for error reporting and sourcemap building
       # @param options [{Symbol => Object}] An options hash;
-      #   see {file:SASS_REFERENCE.md#sass_options the Sass options documentation}
+      #   see {file:SASS_REFERENCE.md#Options the Sass options documentation}
       def initialize(str, line, offset, options)
         @scanner = str.is_a?(StringScanner) ? str : Sass::Util::MultibyteStringScanner.new(str)
         @line = line
@@ -366,8 +368,17 @@ MESSAGE
         # IDs in properties are used in the Basic User Interface Module
         # (http://www.w3.org/TR/css3-ui/).
         return unless scan(REGULAR_EXPRESSIONS[:id])
-        if @scanner[0] =~ /^\#[0-9a-fA-F]+$/ && (@scanner[0].length == 4 || @scanner[0].length == 7)
-          return [:color, Script::Value::Color.from_hex(@scanner[0])]
+        if @scanner[0] =~ /^\#[0-9a-fA-F]+$/
+          if @scanner[0].length == 4 || @scanner[0].length == 7
+            return [:color, Script::Value::Color.from_hex(@scanner[0])]
+          elsif @scanner[0].length == 5 || @scanner[0].length == 9
+            filename = @options[:filename]
+            Sass::Util.sass_warn <<MESSAGE
+DEPRECATION WARNING on line #{line}, column #{offset}#{" of #{filename}" if filename}:
+The value "#{@scanner[0]}" is currently parsed as a string, but it will be parsed as a color in
+future versions of Sass. Use "unquote('#{@scanner[0]}')" to continue parsing it as a string.
+MESSAGE
+          end
         end
         [:ident, @scanner[0]]
       end
@@ -382,6 +393,15 @@ MESSAGE
       def selector
         start_pos = source_position
         return unless scan(REGULAR_EXPRESSIONS[:selector])
+
+        if @scanner.peek(1) == '&'
+          filename = @options[:filename]
+          Sass::Util.sass_warn <<MESSAGE
+WARNING on line #{line}, column #{offset}#{" of #{filename}" if filename}:
+In Sass, "&&" means two copies of the parent selector. You probably want to use "and" instead.
+MESSAGE
+        end
+
         script_selector = Script::Tree::Selector.new
         script_selector.source_range = range(start_pos)
         [:selector, script_selector]

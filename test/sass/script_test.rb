@@ -1,4 +1,3 @@
-#!/usr/bin/env ruby
 # -*- coding: utf-8 -*-
 require File.dirname(__FILE__) + '/../test_helper'
 require 'sass/engine'
@@ -78,9 +77,9 @@ class SassScriptTest < MiniTest::Test
   def test_color_names
     assert_equal "white", resolve("white")
     assert_equal "#ffffff", resolve("#ffffff")
-    assert_equal "#fffffe", resolve("white - #000001")
+    silence_warnings {assert_equal "#fffffe", resolve("white - #000001")}
     assert_equal "transparent", resolve("transparent")
-    assert_equal "transparent", resolve("rgba(0, 0, 0, 0)")
+    assert_equal "rgba(0, 0, 0, 0)", resolve("rgba(0, 0, 0, 0)")
   end
 
   def test_rgba_color_literals
@@ -97,27 +96,27 @@ class SassScriptTest < MiniTest::Test
   end
 
   def test_rgba_color_math
-    assert_equal "rgba(50, 50, 100, 0.35)", resolve("rgba(1, 1, 2, 0.35) * rgba(50, 50, 50, 0.35)")
-    assert_equal "rgba(52, 52, 52, 0.25)", resolve("rgba(2, 2, 2, 0.25) + rgba(50, 50, 50, 0.25)")
+    silence_warnings {assert_equal "rgba(50, 50, 100, 0.35)", resolve("rgba(1, 1, 2, 0.35) * rgba(50, 50, 50, 0.35)")}
+    silence_warnings {assert_equal "rgba(52, 52, 52, 0.25)", resolve("rgba(2, 2, 2, 0.25) + rgba(50, 50, 50, 0.25)")}
 
     assert_raise_message(Sass::SyntaxError, "Alpha channels must be equal: rgba(1, 2, 3, 0.15) + rgba(50, 50, 50, 0.75)") do
-      resolve("rgba(1, 2, 3, 0.15) + rgba(50, 50, 50, 0.75)")
+      silence_warnings {resolve("rgba(1, 2, 3, 0.15) + rgba(50, 50, 50, 0.75)")}
     end
     assert_raise_message(Sass::SyntaxError, "Alpha channels must be equal: #123456 * rgba(50, 50, 50, 0.75)") do
-      resolve("#123456 * rgba(50, 50, 50, 0.75)")
+      silence_warnings {resolve("#123456 * rgba(50, 50, 50, 0.75)")}
     end
     assert_raise_message(Sass::SyntaxError, "Alpha channels must be equal: rgba(50, 50, 50, 0.75) / #123456") do
-      resolve("rgba(50, 50, 50, 0.75) / #123456")
+      silence_warnings {resolve("rgba(50, 50, 50, 0.75) / #123456")}
     end
   end
 
   def test_rgba_number_math
-    assert_equal "rgba(49, 49, 49, 0.75)", resolve("rgba(50, 50, 50, 0.75) - 1")
-    assert_equal "rgba(100, 100, 100, 0.75)", resolve("rgba(50, 50, 50, 0.75) * 2")
+    silence_warnings {assert_equal "rgba(49, 49, 49, 0.75)", resolve("rgba(50, 50, 50, 0.75) - 1")}
+    silence_warnings {assert_equal "rgba(100, 100, 100, 0.75)", resolve("rgba(50, 50, 50, 0.75) * 2")}
   end
 
   def test_rgba_rounding
-    assert_equal "rgba(10, 1, 0, 0.12346)", resolve("rgba(10.0, 1.23456789, 0.0, 0.1234567)")
+    assert_equal "rgba(10, 1, 0, 0.1234567892)", resolve("rgba(10.0, 1.23456789, 0.0, 0.12345678919)")
   end
 
   def test_rgb_calc
@@ -284,10 +283,10 @@ SASS
   end
 
   def test_adding_functions_directly_to_functions_module
-    assert !Functions.callable?('nonexistant')
-    Functions.class_eval { def nonexistant; end }
-    assert Functions.callable?('nonexistant')
-    Functions.send :remove_method, :nonexistant
+    assert !Functions.callable?('nonexistent')
+    Functions.class_eval { def nonexistent; end }
+    assert Functions.callable?('nonexistent')
+    Functions.send :remove_method, :nonexistent
   end
 
   def test_default_functions
@@ -504,7 +503,7 @@ SASS
 
   def test_functions
     assert_equal "#80ff80", resolve("hsl(120, 100%, 75%)")
-    assert_equal "#81ff81", resolve("hsl(120, 100%, 75%) + #010001")
+    silence_warnings {assert_equal "#81ff81", resolve("hsl(120, 100%, 75%) + #010001")}
   end
 
   def test_operator_unit_conversion
@@ -518,34 +517,36 @@ SASS
     assert_equal "true", resolve("2mm == 8q")
     assert_equal "false", resolve("2px > 3q")
 
-    assert_warning(<<WARNING) {assert_equal "true", resolve("1 == 1cm")}
+    Sass::Deprecation.allow_double_warnings do
+      assert_warning(<<WARNING) {assert_equal "true", resolve("1 == 1cm")}
 DEPRECATION WARNING on line 1 of test_operator_unit_conversion_inline.sass:
 The result of `1 == 1cm` will be `false` in future releases of Sass.
 Unitless numbers will no longer be equal to the same numbers with units.
 WARNING
 
-    assert_warning(<<WARNING) {assert_equal "false", resolve("1 != 1cm")}
+      assert_warning(<<WARNING) {assert_equal "false", resolve("1 != 1cm")}
 DEPRECATION WARNING on line 1 of test_operator_unit_conversion_inline.sass:
 The result of `1 != 1cm` will be `true` in future releases of Sass.
 Unitless numbers will no longer be equal to the same numbers with units.
 WARNING
+    end
   end
 
   def test_length_units
     assert_equal "2.54", resolve("(1in/1cm)")
-    assert_equal "2.3622", resolve("(1cm/1pc)")
-    assert_equal "4.23333", resolve("(1pc/1mm)")
-    assert_equal "2.83465", resolve("(1mm/1pt)")
-    assert_equal "1.33333", resolve("(1pt/1px)")
-    assert_equal "0.01042", resolve("(1px/1in)")
-    assert_equal "1.05833", resolve("(1px/1q)")
-    assert_equal "0.05906", resolve("(1q/1pc)")
+    assert_equal "2.3622047244", resolve("(1cm/1pc)")
+    assert_equal "4.2333333333", resolve("(1pc/1mm)")
+    assert_equal "2.8346456693", resolve("(1mm/1pt)")
+    assert_equal "1.3333333333", resolve("(1pt/1px)")
+    assert_equal "0.0104166667", resolve("(1px/1in)")
+    assert_equal "1.0583333333", resolve("(1px/1q)")
+    assert_equal "0.0590551181", resolve("(1q/1pc)")
   end
 
   def test_angle_units
-    assert_equal "1.11111", resolve("(1deg/1grad)")
-    assert_equal "0.01571", resolve("(1grad/1rad)")
-    assert_equal "0.15915", resolve("(1rad/1turn)")
+    assert_equal "1.1111111111", resolve("(1deg/1grad)")
+    assert_equal "0.0157079633", resolve("(1grad/1rad)")
+    assert_equal "0.1591549431", resolve("(1rad/1turn)")
     assert_equal "360", resolve("(1turn/1deg)")
   end
 
@@ -558,9 +559,9 @@ WARNING
   end
 
   def test_resolution_units
-    assert_equal "2.54", resolve("(1dpi/1dpcm)")
-    assert_equal "37.79528", resolve("(1dpcm/1dppx)")
-    assert_equal "0.01042", resolve("(1dppx/1dpi)")
+    assert_equal "0.3937007874", resolve("(1dpi/1dpcm)")
+    assert_equal "0.0264583333", resolve("(1dpcm/1dppx)")
+    assert_equal "96", resolve("(1dppx/1dpi)")
   end
 
   def test_operations_have_options
@@ -988,12 +989,12 @@ SCSS
   end
 
   def test_color_format_isnt_preserved_when_modified
-    assert_equal "magenta", resolve("#f00 + #00f")
+    assert_equal "magenta", resolve("change-color(#f00, $blue: 255)")
   end
 
   def test_ids
     assert_equal "#foo", resolve("#foo")
-    assert_equal "#abcd", resolve("#abcd")
+    silence_warnings {assert_equal "#abcd", resolve("#abcd")}
     assert_equal "#abc-def", resolve("#abc-def")
     assert_equal "#abc_def", resolve("#abc_def")
     assert_equal "#uvw-xyz", resolve("#uvw-xyz")
@@ -1132,9 +1133,8 @@ SASS
     assert_equal "#2", resolve('"##{1 + 1}"')
   end
 
-  def test_misplaced_comma_in_funcall
-    assert_raise_message(Sass::SyntaxError,
-      'Invalid CSS after "foo(bar, ": expected function argument, was ")"') {eval('foo(bar, )')}
+  def test_func_call_arglist_trailing_comma
+    assert_equal eval('foo(bar)'), eval('foo(bar, )')
   end
 
   def test_color_prefixed_identifier
@@ -1176,8 +1176,8 @@ SASS
     assert_equal "1", resolve("1.0")
     assert_equal "1000000000", resolve("1000000000")
     assert_equal "0.00001", resolve("0.00001")
-    assert_equal "1.12121", resolve("1.121214")
-    assert_equal "1.12122", resolve("1.121215")
+    assert_equal "1.1212121212", resolve("1.12121212124")
+    assert_equal "1.1212121213", resolve("1.12121212125")
     assert_equal "Infinity", resolve("(1.0/0.0)")
     assert_equal "-Infinity", resolve("(-1.0/0.0)")
     assert_equal "NaN", resolve("(0.0/0.0)")
@@ -1307,32 +1307,37 @@ SASS
   end
 
   def test_active_lazy_interpolation_deprecation_warning
-    assert_equal "1, 2, 3", resolve_with_lazy_interp_warning('quote((1, #{2}, 3))', '"1, 2, 3"')
-    assert_equal "1", resolve_with_lazy_interp_warning('length((1, #{2}, 3))', '"1, 2, 3"')
-    assert_equal "1, 2, 3", resolve_with_lazy_interp_warning('inspect((1, #{2}, 3))', '"1, 2, 3"')
-    assert_equal "string", resolve_with_lazy_interp_warning('type-of((1, #{2}, 3))', '"1, 2, 3"')
+    Sass::Deprecation.allow_double_warnings do
+      assert_equal "1, 2, 3", resolve_with_lazy_interp_warning('quote((1, #{2}, 3))', '"1, 2, 3"')
+      assert_equal "1", resolve_with_lazy_interp_warning('length((1, #{2}, 3))', '"1, 2, 3"')
+      assert_equal "1, 2, 3", resolve_with_lazy_interp_warning('inspect((1, #{2}, 3))', '"1, 2, 3"')
+      assert_equal "string", resolve_with_lazy_interp_warning('type-of((1, #{2}, 3))', '"1, 2, 3"')
 
-    assert_equal "+1 2 3", resolve_with_lazy_interp_warning('quote((+#{1} 2 3))', '"+1 #{2 3}"')
-    assert_equal "/1 2 3", resolve_with_lazy_interp_warning('quote((/#{1} 2 3))', '"/1 #{2 3}"')
-    assert_equal "-1 2 3", resolve_with_lazy_interp_warning('quote((-#{1} 2 3))', '"-1 #{2 3}"')
+      assert_equal "+1 2 3", resolve_with_lazy_interp_warning('quote((+#{1} 2 3))', '"+1 #{2 3}"')
+      assert_equal "/1 2 3", resolve_with_lazy_interp_warning('quote((/#{1} 2 3))', '"/1 #{2 3}"')
+      assert_equal "-1 2 3", resolve_with_lazy_interp_warning('quote((-#{1} 2 3))', '"-1 #{2 3}"')
+    end
   end
 
   def test_comparison_of_complex_units
     # Tests for issue #1960
-    assert_warning(<<WARNING) do
+    Sass::Deprecation.allow_double_warnings do
+      assert_warning(<<WARNING) do
 DEPRECATION WARNING on line 1 of test_comparison_of_complex_units_inline.sass:
 The result of `10 == 10px` will be `false` in future releases of Sass.
 Unitless numbers will no longer be equal to the same numbers with units.
 WARNING
-      assert_equal "true", resolve("10 == 2 * 5px")
-    end
-    assert_warning(<<WARNING) do
+        assert_equal "true", resolve("10 == 2 * 5px")
+      end
+      assert_warning(<<WARNING) do
 DEPRECATION WARNING on line 1 of test_comparison_of_complex_units_inline.sass:
 The result of `10 == 10px*px` will be `false` in future releases of Sass.
 Unitless numbers will no longer be equal to the same numbers with units.
 WARNING
-      assert_equal "true", resolve("10 == 2px * 5px")
+        assert_equal "true", resolve("10 == 2px * 5px")
+      end
     end
+
     assert_equal "true", resolve("10px * 1px == 2px * 5px")
     assert_equal "true", resolve("5px * 1px < 2px * 5px")
   end
@@ -1342,8 +1347,9 @@ WARNING
   def resolve_with_lazy_interp_warning(str, contents = nil, environment = env)
     contents ||= "\"#{str}\""
     result = assert_warning(<<WARNING) {resolve(str, {}, environment)}
-DEPRECATION WARNING on line 1 of #{filename_for_test}: \#{} interpolation near operators will be simplified
-in a future version of Sass. To preserve the current behavior, use quotes:
+DEPRECATION WARNING on line 1 of #{filename_for_test}:
+\#{} interpolation near operators will be simplified in a future version of Sass.
+To preserve the current behavior, use quotes:
 
   unquote(#{contents})
 WARNING
@@ -1354,8 +1360,9 @@ WARNING
   def resolve_with_interp_warning(str, contents = nil, environment = env)
     contents ||= "\"#{str}\""
     assert_warning(<<WARNING) {resolve(str, {}, environment)}
-DEPRECATION WARNING on line 1 of #{filename_for_test}: \#{} interpolation near operators will be simplified
-in a future version of Sass. To preserve the current behavior, use quotes:
+DEPRECATION WARNING on line 1 of #{filename_for_test}:
+\#{} interpolation near operators will be simplified in a future version of Sass.
+To preserve the current behavior, use quotes:
 
   unquote(#{contents})
 

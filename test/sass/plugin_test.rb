@@ -1,4 +1,3 @@
-#!/usr/bin/env ruby
 require File.dirname(__FILE__) + '/../test_helper'
 require File.dirname(__FILE__) + '/test_helper'
 require 'sass/plugin'
@@ -21,10 +20,9 @@ class SassPluginTest < MiniTest::Test
   @@templates = %w{
     complex script parent_ref import scss_import alt
     subdir/subdir subdir/nested_subdir/nested_subdir
-    options import_content filename_fn
+    options import_content filename_fn import_charset
+    import_charset_ibm866
   }
-  @@templates += %w[import_charset import_charset_ibm866] unless Sass::Util.ruby1_8?
-  @@templates << 'import_charset_1_8' if Sass::Util.ruby1_8?
 
   @@cache_store = Sass::CacheStores::Memory.new
 
@@ -45,7 +43,7 @@ class SassPluginTest < MiniTest::Test
 
   @@templates.each do |name|
     define_method("test_template_renders_correctly (#{name})") do
-      assert_renders_correctly(name)
+      silence_warnings {assert_renders_correctly(name)}
     end
   end
 
@@ -117,7 +115,7 @@ Error: Undefined variable: "$bork".
         on line 2 of #{template_loc('bork1')}
 
 1: bork
-2:   :bork $bork
+2:   bork: $bork
 CSS
     end
     File.delete(tempfile_loc('bork1'))
@@ -134,7 +132,7 @@ Error: Undefined variable: "$bork".
 
 1: bork
 2:   /* foo *\\/
-3:   :bork $bork
+3:   bork: $bork
 CSS
     end
     File.delete(tempfile_loc('bork1'))
@@ -396,15 +394,13 @@ WARNING
 
     expected_str = File.read(result_loc(result_name, prefix))
     actual_str = File.read(tempfile_loc(tempfile_name, prefix))
-    unless Sass::Util.ruby1_8?
-      expected_str = expected_str.force_encoding('IBM866') if result_name == 'import_charset_ibm866'
-      actual_str = actual_str.force_encoding('IBM866') if tempfile_name == 'import_charset_ibm866'
-    end
+    expected_str = expected_str.force_encoding('IBM866') if result_name == 'import_charset_ibm866'
+    actual_str = actual_str.force_encoding('IBM866') if tempfile_name == 'import_charset_ibm866'
     expected_lines = expected_str.split("\n")
     actual_lines = actual_str.split("\n")
 
     if actual_lines.first == "/*" && expected_lines.first != "/*"
-      assert(false, actual_lines[0..Sass::Util.enum_with_index(actual_lines).find {|l, i| l == "*/"}.last].join("\n"))
+      assert(false, actual_lines[0..actual_lines.each_with_index.find {|l, i| l == "*/"}.last].join("\n"))
     end
 
     expected_lines.zip(actual_lines).each_with_index do |pair, line|
@@ -423,7 +419,7 @@ WARNING
     expected_lines = File.read(result_loc(name)).split("\n")
     actual_lines = File.read(tempfile_loc(name)).split("\n")
     if actual_lines.first == "/*" && expected_lines.first != "/*"
-      assert(false, actual_lines[0..actual_lines.enum_with_index.find {|l, i| l == "*/"}.last].join("\n"))
+      assert(false, actual_lines[0..actual_lines.each_with_index.find {|l, i| l == "*/"}.last].join("\n"))
     end
   end
 

@@ -5,7 +5,7 @@ module Sass
     class Simple
       # The line of the Sass template on which this selector was declared.
       #
-      # @return [Fixnum]
+      # @return [Integer]
       attr_accessor :line
 
       # The name of the file in which this selector was declared,
@@ -13,6 +13,14 @@ module Sass
       #
       # @return [String, nil]
       attr_accessor :filename
+
+      # Whether only one instance of this simple selector is allowed in a given
+      # complex selector.
+      #
+      # @return [Boolean]
+      def unique?
+        false
+      end
 
       # @see #to_s
       #
@@ -36,7 +44,7 @@ module Sass
       # so if that contains information irrelevant to the identity of the selector,
       # this should be overridden.
       #
-      # @return [Fixnum]
+      # @return [Integer]
       def hash
         @_hash ||= equality_key.hash
       end
@@ -72,10 +80,10 @@ module Sass
       #   by the time extension and unification happen,
       #   this exception will only ever be raised as a result of programmer error
       def unify(sels)
+        return sels.first.unify([self]) if sels.length == 1 && sels.first.is_a?(Universal)
         return sels if sels.any? {|sel2| eql?(sel2)}
-        sels_with_ix = Sass::Util.enum_with_index(sels)
         if !is_a?(Pseudo) || (sels.last.is_a?(Pseudo) && sels.last.type == :element)
-          _, i = sels_with_ix.find {|sel, _| sel.is_a?(Pseudo)}
+          _, i = sels.each_with_index.find {|sel, _| sel.is_a?(Pseudo)}
         end
         return sels + [self] unless i
         sels[0...i] + [self] + sels[i..-1]
@@ -106,10 +114,10 @@ module Sass
       #   could be found at all.
       #   If the second value is `false`, the first should be ignored.
       def unify_namespaces(ns1, ns2)
-        return nil, false unless ns1 == ns2 || ns1.nil? || ns1 == '*' || ns2.nil? || ns2 == '*'
         return ns2, true if ns1 == '*'
         return ns1, true if ns2 == '*'
-        [ns1 || ns2, true]
+        return nil, false unless ns1 == ns2
+        [ns1, true]
       end
     end
   end

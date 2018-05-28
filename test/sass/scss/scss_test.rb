@@ -1,4 +1,3 @@
-#!/usr/bin/env ruby
 # -*- coding: utf-8 -*-
 require File.dirname(__FILE__) + '/test_helper'
 
@@ -1015,7 +1014,8 @@ SASS
   end
 
   def test_disallowed_function_names
-    assert_warning(<<WARNING) {render(<<SCSS)}
+    Sass::Deprecation.allow_double_warnings do
+      assert_warning(<<WARNING) {render(<<SCSS)}
 DEPRECATION WARNING on line 1 of test_disallowed_function_names_inline.scss:
 Naming a function "calc" is disallowed and will be an error in future versions of Sass.
 This name conflicts with an existing CSS function with special parse rules.
@@ -1023,7 +1023,7 @@ WARNING
 @function calc() {}
 SCSS
 
-    assert_warning(<<WARNING) {render(<<SCSS)}
+      assert_warning(<<WARNING) {render(<<SCSS)}
 DEPRECATION WARNING on line 1 of test_disallowed_function_names_inline.scss:
 Naming a function "-my-calc" is disallowed and will be an error in future versions of Sass.
 This name conflicts with an existing CSS function with special parse rules.
@@ -1031,7 +1031,7 @@ WARNING
 @function -my-calc() {}
 SCSS
 
-    assert_warning(<<WARNING) {render(<<SCSS)}
+      assert_warning(<<WARNING) {render(<<SCSS)}
 DEPRECATION WARNING on line 1 of test_disallowed_function_names_inline.scss:
 Naming a function "element" is disallowed and will be an error in future versions of Sass.
 This name conflicts with an existing CSS function with special parse rules.
@@ -1039,7 +1039,7 @@ WARNING
 @function element() {}
 SCSS
 
-    assert_warning(<<WARNING) {render(<<SCSS)}
+      assert_warning(<<WARNING) {render(<<SCSS)}
 DEPRECATION WARNING on line 1 of test_disallowed_function_names_inline.scss:
 Naming a function "-my-element" is disallowed and will be an error in future versions of Sass.
 This name conflicts with an existing CSS function with special parse rules.
@@ -1047,7 +1047,7 @@ WARNING
 @function -my-element() {}
 SCSS
 
-    assert_warning(<<WARNING) {render(<<SCSS)}
+      assert_warning(<<WARNING) {render(<<SCSS)}
 DEPRECATION WARNING on line 1 of test_disallowed_function_names_inline.scss:
 Naming a function "expression" is disallowed and will be an error in future versions of Sass.
 This name conflicts with an existing CSS function with special parse rules.
@@ -1055,13 +1055,14 @@ WARNING
 @function expression() {}
 SCSS
 
-    assert_warning(<<WARNING) {render(<<SCSS)}
+      assert_warning(<<WARNING) {render(<<SCSS)}
 DEPRECATION WARNING on line 1 of test_disallowed_function_names_inline.scss:
 Naming a function "url" is disallowed and will be an error in future versions of Sass.
 This name conflicts with an existing CSS function with special parse rules.
 WARNING
 @function url() {}
 SCSS
+    end
   end
 
   def test_allowed_function_names
@@ -2172,7 +2173,7 @@ SCSS
   end
 
   def test_selector_interpolation_in_reference_combinator
-    assert_equal <<CSS, render(<<SCSS)
+    silence_warnings {assert_equal <<CSS, render(<<SCSS)}
 .foo /a/ .bar /b|c/ .baz {
   a: b; }
 CSS
@@ -3387,22 +3388,22 @@ SCSS
   def test_uses_property_exception_with_star_hack
     render <<SCSS
 foo {
-  *bar:baz [fail]; }
+  *bar:baz <fail>; }
 SCSS
     assert(false, "Expected syntax error")
   rescue Sass::SyntaxError => e
-    assert_equal 'Invalid CSS after "  *bar:baz ": expected ";", was "[fail]; }"', e.message
+    assert_equal 'Invalid CSS after "  *bar:baz <fail>": expected expression (e.g. 1px, bold), was "; }"', e.message
     assert_equal 2, e.sass_line
   end
 
   def test_uses_property_exception_with_colon_hack
     render <<SCSS
 foo {
-  :bar:baz [fail]; }
+  :bar:baz <fail>; }
 SCSS
     assert(false, "Expected syntax error")
   rescue Sass::SyntaxError => e
-    assert_equal 'Invalid CSS after "  :bar:baz ": expected ";", was "[fail]; }"', e.message
+    assert_equal 'Invalid CSS after "  :bar:baz <fail>": expected expression (e.g. 1px, bold), was "; }"', e.message
     assert_equal 2, e.sass_line
   end
 
@@ -3420,22 +3421,22 @@ SCSS
   def test_uses_property_exception_with_space_after_name
     render <<SCSS
 foo {
-  bar: baz [fail]; }
+  bar: baz <fail>; }
 SCSS
     assert(false, "Expected syntax error")
   rescue Sass::SyntaxError => e
-    assert_equal 'Invalid CSS after "  bar: baz ": expected ";", was "[fail]; }"', e.message
+    assert_equal 'Invalid CSS after "  bar: baz <fail>": expected expression (e.g. 1px, bold), was "; }"', e.message
     assert_equal 2, e.sass_line
   end
 
   def test_uses_property_exception_with_non_identifier_after_name
     render <<SCSS
 foo {
-  bar:1px [fail]; }
+  bar:1px <fail>; }
 SCSS
     assert(false, "Expected syntax error")
   rescue Sass::SyntaxError => e
-    assert_equal 'Invalid CSS after "  bar:1px ": expected ";", was "[fail]; }"', e.message
+    assert_equal 'Invalid CSS after "  bar:1px <fail>": expected expression (e.g. 1px, bold), was "; }"', e.message
     assert_equal 2, e.sass_line
   end
 
@@ -3666,8 +3667,9 @@ SCSS
   # Ensures that the fix for #2031 doesn't hide legitimate warnings.
   def test_interpolation_warning_in_selector_like_property
     assert_warning(<<WARNING) {assert_equal(<<CSS, render(<<SCSS))}
-DEPRECATION WARNING on line 2 of #{filename_for_test :scss}: \#{} interpolation near operators will be simplified
-in a future version of Sass. To preserve the current behavior, use quotes:
+DEPRECATION WARNING on line 2 of #{filename_for_test :scss}:
+\#{} interpolation near operators will be simplified in a future version of Sass.
+To preserve the current behavior, use quotes:
 
   unquote("n+1")
 
@@ -3824,7 +3826,7 @@ SCSS
   def test_parsing_decimals_followed_by_comments_doesnt_take_forever
     assert_equal(<<CSS, render(<<SCSS))
 .foo {
-  padding: 4.21053% 4.21053% 5.63158%; }
+  padding: 4.2105263158% 4.2105263158% 5.6315789474%; }
 CSS
 .foo {
   padding: 4.21052631578947% 4.21052631578947% 5.631578947368421% /**/
@@ -3857,7 +3859,19 @@ SCSS
   end
 
   def test_reference_combinator_with_parent_ref
-    assert_equal <<CSS, render(<<SCSS)
+    silence_warnings {assert_equal <<CSS, render(<<SCSS)}
+a /foo/ b {
+  c: d; }
+CSS
+a {& /foo/ b {c: d}}
+SCSS
+  end
+
+  def test_reference_combinator_warning
+    assert_warning(<<WARNING) {assert_equal <<CSS, render(<<SCSS)}
+DEPRECATION WARNING on line 1, column 8 of test_reference_combinator_warning_inline.scss:
+The reference combinator /foo/ is deprecated and will be removed in a future release.
+WARNING
 a /foo/ b {
   c: d; }
 CSS
@@ -3927,12 +3941,13 @@ a.\#{"foo"} b
 SCSS
   end
 
-  def test_extra_comma_in_mixin_arglist_error
-    assert_raise_message(Sass::SyntaxError, <<MESSAGE.rstrip) {render <<SCSS}
-Invalid CSS after "...clude foo(bar, ": expected mixin argument, was ");"
-MESSAGE
-@mixin foo($a1, $a2) {
-  baz: $a1 $a2;
+  def test_extra_comma_in_mixin_arglist
+    assert_equal <<CSS, render(<<SCSS)
+.bar {
+  baz: bar; }
+CSS
+@mixin foo($a1,) {
+  baz: $a1;
 }
 
 .bar {
@@ -3940,6 +3955,39 @@ MESSAGE
 }
 SCSS
   end
+
+
+  def test_extra_comma_between_parameters_in_mixin_arglist
+    assert_raise_message(Sass::SyntaxError, "Invalid CSS after \"...nclude foo(bar,\": expected \")\", was \", baz );\"") {render <<SCSS}
+@mixin foo($a1, $a2) {
+  baz: $a1;
+  bef: $a2;
+}
+
+.bar {
+  @include foo(bar,, baz );
+}
+SCSS
+  end
+
+
+  def test_extra_comma_in_mixin_arglist_ending_needs_have_parentheses_after
+    assert_raise_message(Sass::SyntaxError, "Invalid CSS after \"    bri,\": expected \")\", was \"};\"") {render <<SCSS}
+@mixin foo($a1, $a2) {
+  baz: $a1;
+  bal: $a2;
+}
+
+.bar {
+  @include foo(
+    bar,
+    bri,
+  };
+}
+SCSS
+  end
+
+
 
   def test_interpolation
     assert_equal <<CSS, render(<<SCSS)

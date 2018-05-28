@@ -27,7 +27,7 @@ module Sass::Script::Value
 
     # Sets the options hash for this node,
     # as well as for all child nodes.
-    # See {file:SASS_REFERENCE.md#sass_options the Sass options documentation}.
+    # See {file:SASS_REFERENCE.md#Options the Sass options documentation}.
     #
     # @param options [{Symbol => Object}] The options
     attr_writer :options
@@ -149,7 +149,7 @@ MSG
     # Returns the hash code of this value. Two objects' hash codes should be
     # equal if the objects are equal.
     #
-    # @return [Fixnum] The hash code.
+    # @return [Integer for Ruby 2.4.0+, Fixnum for earlier Ruby versions] The hash code.
     def hash
       value.hash
     end
@@ -176,7 +176,7 @@ MSG
       eq(other).to_bool
     end
 
-    # @return [Fixnum] The integer value of this value
+    # @return [Integer] The integer value of this value
     # @raise [Sass::SyntaxError] if this value isn't an integer
     def to_i
       raise Sass::SyntaxError.new("#{inspect} is not an integer.")
@@ -191,6 +191,12 @@ MSG
     #
     # @return [Symbol]
     def separator; nil; end
+
+    # Whether the value is surrounded by square brackets. For non-list values,
+    # this will be `false`.
+    #
+    # @return [Boolean]
+    def bracketed; false; end
 
     # Returns the value of this value as a list.
     # Single values are considered the same as single-element lists.
@@ -226,6 +232,17 @@ MSG
     # @return [Boolean] `false`
     def null?
       false
+    end
+
+    # Creates a new list containing `contents` but with the same brackets and
+    # separators as this object, when interpreted as a list.
+    #
+    # @param contents [Array<Value>] The contents of the new list.
+    # @param separator [Symbol] The separator of the new list. Defaults to \{#separator}.
+    # @param bracketed [Boolean] Whether the new list is bracketed. Defaults to \{#bracketed}.
+    # @return [Sass::Script::Value::List]
+    def with_contents(contents, separator: self.separator, bracketed: self.bracketed)
+      Sass::Script::Value::List.new(contents, separator: separator, bracketed: bracketed)
     end
 
     protected

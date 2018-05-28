@@ -1,4 +1,3 @@
-#!/usr/bin/env ruby
 # -*- coding: utf-8 -*-
 require File.dirname(__FILE__) + '/../test_helper'
 require 'sass/engine'
@@ -23,7 +22,7 @@ class SassScriptConversionTest < MiniTest::Test
     assert_renders "12px"
     assert_renders "12.45px"
 
-    assert_equal "12.34568", render("12.345678901")
+    assert_equal "12.3456789013", render("12.34567890129")
   end
 
   def test_string
@@ -341,6 +340,15 @@ RUBY
     assert_renders '"\#{bar}"'
 
     assert_equal '"foo#{$bar}baz"', render("'foo\#{$bar}baz'")
+  end
+
+  def test_bracketed_lists
+    assert_renders("[]")
+    assert_renders("[foo, bar]")
+    assert_renders("[[foo]]")
+    assert_renders("[(foo bar)]")
+    assert_renders("[foo bar,]")
+    assert_renders("[(foo,)]")
   end
 
   private

@@ -18,7 +18,7 @@ module Sass
     #   that can be converted to Unicode.
     #   If the stylesheet contains an `@charset` declaration,
     #   that overrides the Ruby encoding
-    #   (see {file:SASS_REFERENCE.md#encodings the encoding documentation})
+    #   (see {file:SASS_REFERENCE.md#Encodings the encoding documentation})
     # @option options :old [Boolean] (false)
     #     Whether or not to output old property syntax
     #     (`:color blue` as opposed to `color: blue`).
@@ -51,8 +51,7 @@ module Sass
       raise err
     end
 
-    # Returns the original encoding of the document,
-    # or `nil` under Ruby 1.8.
+    # Returns the original encoding of the document.
     #
     # @return [Encoding, nil]
     # @raise [Encoding::UndefinedConversionError] if the source encoding

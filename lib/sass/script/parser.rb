@@ -1,5 +1,4 @@
 require 'sass/script/lexer'
-require 'sass/script/css_variable_warning'
 
 module Sass
   module Script
@@ -8,25 +7,25 @@ module Sass
     class Parser
       # The line number of the parser's current position.
       #
-      # @return [Fixnum]
+      # @return [Integer]
       def line
         @lexer.line
       end
 
       # The column number of the parser's current position.
       #
-      # @return [Fixnum]
+      # @return [Integer]
       def offset
         @lexer.offset
       end
 
       # @param str [String, StringScanner] The source text to parse
-      # @param line [Fixnum] The line on which the SassScript appears.
+      # @param line [Integer] The line on which the SassScript appears.
       #   Used for error reporting and sourcemap building
-      # @param offset [Fixnum] The character (not byte) offset where the script starts in the line.
+      # @param offset [Integer] The character (not byte) offset where the script starts in the line.
       #   Used for error reporting and sourcemap building
       # @param options [{Symbol => Object}] An options hash; see
-      #   {file:SASS_REFERENCE.md#sass_options the Sass options documentation}.
+      #   {file:SASS_REFERENCE.md#Options the Sass options documentation}.
       #   This supports an additional `:allow_extra_text` option that controls
       #   whether the parser throws an error when extra text is encountered
       #   after the parsed construct.
@@ -35,7 +34,6 @@ module Sass
         @allow_extra_text = options.delete(:allow_extra_text)
         @lexer = lexer_class.new(str, line, offset, options)
         @stop_at = nil
-        @css_variable_warning = nil
       end
 
       # Parses a SassScript expression within an interpolated segment (`#{}`).
@@ -64,23 +62,13 @@ module Sass
 
       # Parses a SassScript expression.
       #
-      # @param css_variable [Boolean] Whether this is the value of a CSS variable.
       # @return [Script::Tree::Node] The root node of the parse tree
       # @raise [Sass::SyntaxError] if the expression isn't valid SassScript
-      def parse(css_variable = false)
-        if css_variable
-          @css_variable_warning = CssVariableWarning.new
-        end
-
+      def parse
         expr = assert_expr :expr
         assert_done
         expr.options = @options
         check_for_interpolation expr
-
-        if css_variable
-          @css_variable_warning.value = expr
-        end
-
         expr
       rescue Sass::SyntaxError => e
         e.modify_backtrace :line => @lexer.line, :filename => @options[:filename]
@@ -127,7 +115,7 @@ module Sass
           a.options = @options
         end
 
-        keywords.each do |_k, v|
+        keywords.each do |_, v|
           check_for_interpolation v
           v.options = @options
         end
@@ -232,12 +220,12 @@ module Sass
 
       # Parses a SassScript expression.
       #
+      # @overload parse(str, line, offset, filename = nil)
       # @return [Script::Tree::Node] The root node of the parse tree
       # @see Parser#initialize
       # @see Parser#parse
-      def self.parse(value, line, offset, options = {})
-        css_variable = options.delete :css_variable
-        new(value, line, offset, options).parse(css_variable)
+      def self.parse(*args)
+        new(*args).parse
       end
 
       PRECEDENCE = [
@@ -249,8 +237,6 @@ module Sass
       ]
 
       ASSOCIATIVE = [:plus, :times]
-
-      VALID_CSS_OPS = [:comma, :single_eq, :space, :div]
 
       class << self
         # Returns an integer representing the precedence
@@ -291,10 +277,6 @@ module Sass
                   return other_interp
                 end
 
-                if @css_variable_warning && !VALID_CSS_OPS.include?(tok.type)
-                  @css_variable_warning.warn!
-                end
-
                 e = node(Tree::Operation.new(e, assert_expr(#{sub.inspect}), tok.type),
                          e.source_range.start_pos)
               end
@@ -310,8 +292,6 @@ RUBY
               interp = try_op_before_interp(tok)
               return interp if interp
               start_pos = source_position
-
-              @css_variable_warning.warn! if @css_variable_warning
               node(Tree::UnaryOperation.new(assert_expr(:unary_#{op}), :#{op}), start_pos)
             end
 RUBY
@@ -338,12 +318,12 @@ RUBY
         return list e, start_pos unless @lexer.peek && @lexer.peek.type == :colon
 
         pair = map_pair(e)
-        @css_variable_warning.warn! if @css_variable_warning
         map = node(Sass::Script::Tree::MapLiteral.new([pair]), start_pos)
         while try_tok(:comma)
           pair = map_pair
           return map unless pair
           map.pairs << pair
+          map.source_range.end_pos = map.pairs.last.last.source_range.end_pos
         end
         map
       end
@@ -364,7 +344,7 @@ RUBY
       def list(first, start_pos)
         return first unless @lexer.peek && @lexer.peek.type == :comma
 
-        list = node(Sass::Script::Tree::ListLiteral.new([first], :comma), start_pos)
+        list = node(Sass::Script::Tree::ListLiteral.new([first], separator: :comma), start_pos)
         while (tok = try_tok(:comma))
           element_before_interp = list.elements.length == 1 ? list.elements.first : list
           if (interp = try_op_before_interp(tok, element_before_interp))
@@ -401,7 +381,7 @@ RUBY
           Script::Tree::Interpolation.new(
             prev, str, nil, wb, false, :originally_text => true, :deprecation => deprecation),
           (prev || str).source_range.start_pos)
-        interpolation(interp)
+        interpolation(first: interp)
       end
 
       def try_ops_after_interp(ops, name, prev = nil)
@@ -431,17 +411,17 @@ RUBY
         interp
       end
 
-      def interpolation(first = space)
-        e = first
+      def interpolation(first: nil, inner: :space)
+        e = first || send(inner)
         while (interp = try_tok(:begin_interpolation))
           wb = @lexer.whitespace?(interp)
           char_before = @lexer.char(interp.pos - 1)
-          mid = without_css_variable_warning {assert_expr :expr}
+          mid = assert_expr :expr
           assert_tok :end_interpolation
           wa = @lexer.whitespace?
           char_after = @lexer.char
 
-          after = space
+          after = send(inner)
           before_deprecation = e.is_a?(Script::Tree::Interpolation) ? e.deprecation : :none
           after_deprecation = after.is_a?(Script::Tree::Interpolation) ? after.deprecation : :none
 
@@ -500,7 +480,7 @@ RUBY
         if arr.size == 1
           arr.first
         else
-          node(Sass::Script::Tree::ListLiteral.new(arr, :space), start_pos)
+          node(Sass::Script::Tree::ListLiteral.new(arr, separator: :space), start_pos)
         end
       end
 
@@ -549,12 +529,12 @@ RUBY
         else
           return [], nil unless try_tok(:lparen)
         end
-        return [], nil if try_tok(:rparen)
 
         res = []
         splat = nil
         must_have_default = false
         loop do
+          break if peek_tok(:rparen)
           c = assert_tok(:const)
           var = node(Script::Tree::Variable.new(c.value), c.source_range)
           if try_tok(:colon)
@@ -585,12 +565,8 @@ RUBY
       def arglist(subexpr, description)
         args = []
         keywords = Sass::Util::NormalizedMap.new
-        e = send(subexpr)
-
-        return [args, keywords] unless e
-
         splat = nil
-        loop do
+        while (e = send(subexpr))
           if @lexer.peek && @lexer.peek.type == :colon
             name = e
             @lexer.expected!("comma") unless name.is_a?(Tree::Variable)
@@ -611,13 +587,12 @@ RUBY
             elsif !keywords.empty?
               raise SyntaxError.new("Positional arguments must come before keyword arguments.")
             end
-
             args << e if e
           end
 
           return args, keywords, splat unless try_tok(:comma)
-          e = assert_expr(subexpr, description)
         end
+        return args, keywords
       end
 
       def raw
@@ -628,15 +603,59 @@ RUBY
 
       def special_fun
         first = try_tok(:special_fun)
-        return paren unless first
+        return square_list unless first
         str = literal_node(first.value, first.source_range)
         return str unless try_tok(:string_interpolation)
-        mid = without_css_variable_warning {assert_expr :expr}
+        mid = assert_expr :expr
         assert_tok :end_interpolation
         last = assert_expr(:special_fun)
         node(
           Tree::Interpolation.new(str, mid, last, false, false),
           first.source_range.start_pos)
+      end
+
+      def square_list
+        start_pos = source_position
+        return paren unless try_tok(:lsquare)
+
+        space_start_pos = source_position
+        e = interpolation(inner: :or_expr)
+        separator = nil
+        if e
+          elements = [e]
+          while (e = interpolation(inner: :or_expr))
+            elements << e
+          end
+
+          # If there's a comma after a space-separated list, it's actually a
+          # space-separated list nested in a comma-separated list.
+          if try_tok(:comma)
+            e = if elements.length == 1
+                  elements.first
+                else
+                  node(
+                    Sass::Script::Tree::ListLiteral.new(elements, separator: :space),
+                    space_start_pos)
+                end
+            elements = [e]
+
+            while (e = space)
+              elements << e
+              break unless try_tok(:comma)
+            end
+            separator = :comma
+          else
+            separator = :space if elements.length > 1
+          end
+        else
+          elements = []
+        end
+
+        assert_tok(:rsquare)
+        end_pos = source_position
+
+        node(Sass::Script::Tree::ListLiteral.new(elements, separator: separator, bracketed: true),
+             start_pos, end_pos)
       end
 
       def paren
@@ -646,17 +665,13 @@ RUBY
         e.force_division! if e
         end_pos = source_position
         assert_tok(:rparen)
-
-        @css_variable_warning.warn! if @css_variable_warning
-        e || node(Sass::Script::Tree::ListLiteral.new([], nil), start_pos, end_pos)
+        e || node(Sass::Script::Tree::ListLiteral.new([]), start_pos, end_pos)
       end
 
       def variable
         start_pos = source_position
         c = try_tok(:const)
         return string unless c
-
-        @css_variable_warning.warn! if @css_variable_warning
         node(Tree::Variable.new(*c.value), start_pos)
       end
 
@@ -665,7 +680,7 @@ RUBY
         return number unless first
         str = literal_node(first.value, first.source_range)
         return str unless try_tok(:string_interpolation)
-        mid = without_css_variable_warning {assert_expr :expr}
+        mid = assert_expr :expr
         assert_tok :end_interpolation
         last = assert_expr(:string)
         node(Tree::StringInterpolation.new(str, mid, last), first.source_range.start_pos)
@@ -683,7 +698,6 @@ RUBY
       def selector
         tok = try_tok(:selector)
         return literal unless tok
-        @css_variable_warning.warn! if @css_variable_warning
         node(tok.value, tok.source_range.start_pos)
       end
 
@@ -723,10 +737,14 @@ RUBY
         @lexer.expected!(names.map {|tok| Lexer::TOKEN_NAMES[tok] || tok}.join(" or "))
       end
 
-      def try_tok(name)
+      def peek_tok(name)
         # Avoids an array allocation caused by argument globbing in the try_toks method.
         peeked = @lexer.peek
-        peeked && name == peeked.type && @lexer.next
+        peeked && name == peeked.type
+      end
+
+      def try_tok(name)
+        peek_tok(name) && @lexer.next
       end
 
       def try_toks(*names)
@@ -771,25 +789,10 @@ RUBY
             range(source_range_or_start_pos, end_pos)
           end
 
-        node.css_variable_warning = @css_variable_warning
         node.line = source_range.start_pos.line
         node.source_range = source_range
         node.filename = @options[:filename]
         node
-      end
-
-      # Runs the given block without CSS variable warnings enabled.
-      #
-      # CSS warnings don't apply within interpolation, so this is used to
-      # disable them.
-      #
-      # @yield []
-      def without_css_variable_warning
-        old_css_variable_warning = @css_variable_warning
-        @css_variable_warning = nil
-        yield
-      ensure
-        @css_variable_warning = old_css_variable_warning
       end
 
       # Checks a script node for any immediately-deprecated interpolations, and
@@ -818,8 +821,9 @@ RUBY
         location = "on line #{interpolation.line}"
         location << " of #{interpolation.filename}" if interpolation.filename
         Sass::Util.sass_warn <<WARNING
-DEPRECATION WARNING #{location}: \#{} interpolation near operators will be simplified
-in a future version of Sass. To preserve the current behavior, use quotes:
+DEPRECATION WARNING #{location}:
+\#{} interpolation near operators will be simplified in a future version of Sass.
+To preserve the current behavior, use quotes:
 
   #{interpolation.to_quoted_equivalent.to_sass}
 

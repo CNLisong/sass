@@ -34,7 +34,7 @@ module Sass::Script::Value
     attr_accessor :original
 
     def self.precision
-      Thread.current[:sass_numeric_precision] || Thread.main[:sass_numeric_precision] || 5
+      Thread.current[:sass_numeric_precision] || Thread.main[:sass_numeric_precision] || 10
     end
 
     # Sets the number of digits of precision
@@ -189,6 +189,7 @@ module Sass::Script::Value
     # @raise [Sass::UnitConversionError] if `other` has incompatible units
     def mod(other)
       if other.is_a?(Number)
+        return Number.new(Float::NAN) if other.value == 0
         operate(other, :%)
       else
         raise NoMethodError.new(nil, :mod)
@@ -306,7 +307,7 @@ module Sass::Script::Value
     end
     alias_method :to_sass, :inspect
 
-    # @return [Fixnum] The integer value of the number
+    # @return [Integer] The integer value of the number
     # @raise [Sass::SyntaxError] if the number isn't an integer
     def to_i
       super unless int?
@@ -472,7 +473,7 @@ module Sass::Script::Value
         sans_common_units(@numerator_units, @denominator_units)
 
       @denominator_units.each_with_index do |d, i|
-        next unless convertable?(d) && (u = @numerator_units.find(&method(:convertable?)))
+        next unless convertable?(d) && (u = @numerator_units.find {|n| convertable?([n, d])})
         @value /= conversion_factor(d, u)
         @denominator_units.delete_at(i)
         @numerator_units.delete_at(@numerator_units.index(u))
@@ -510,8 +511,8 @@ module Sass::Script::Value
       },
       {
         'dpi'  => Rational(1),
-        'dpcm' => Rational(1, 2.54),
-        'dppx' => Rational(1, 96)
+        'dpcm' => Rational(254, 100),
+        'dppx' => Rational(96)
       }
     ]
 

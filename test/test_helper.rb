@@ -74,7 +74,7 @@ class MiniTest::Test
   end
 
   def silence_warnings(&block)
-    Sass::Util.silence_warnings(&block)
+    Sass::Util.silence_sass_warnings(&block)
   end
 
   def assert_raise_message(klass, message)
@@ -92,6 +92,45 @@ class MiniTest::Test
     assert_equal(line, e.sass_line)
   else
     flunk "Expected exception on line #{line}, none raised"
+  end
+
+  def assert_sass_to_sass(sass, options: {})
+    assert_equal(sass.rstrip, to_sass(sass, options).rstrip,
+      "Expected Sass to transform to itself")
+  end
+
+  def assert_scss_to_sass(sass, scss, options: {})
+    assert_equal(sass.rstrip, to_sass(scss, options.merge(:syntax => :scss)).rstrip,
+      "Expected SCSS to transform to Sass")
+  end
+
+  def assert_scss_to_scss(scss, source: scss, options: {})
+    assert_equal(scss.rstrip, to_scss(source, options.merge(:syntax => :scss)).rstrip,
+      "Expected SCSS to transform to #{scss == source ? 'itself' : 'SCSS'}")
+  end
+
+  def assert_sass_to_scss(scss, sass, options: {})
+    assert_equal(scss.rstrip, to_scss(sass, options).rstrip,
+      "Expected Sass to transform to SCSS")
+  end
+
+  def assert_converts(sass, scss, options: {})
+    assert_sass_to_sass(sass, options: options)
+    assert_scss_to_sass(sass, scss, options: options)
+    assert_scss_to_scss(scss, options: options)
+    assert_sass_to_scss(scss, sass, options: options)
+  end
+
+  def to_sass(scss, options = {})
+    Sass::Util.silence_sass_warnings do
+      Sass::Engine.new(scss, options).to_tree.to_sass(options)
+    end
+  end
+
+  def to_scss(sass, options = {})
+    Sass::Util.silence_sass_warnings do
+      Sass::Engine.new(sass, options).to_tree.to_scss(options)
+    end
   end
 end
 

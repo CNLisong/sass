@@ -55,13 +55,13 @@ class Sass::Tree::Visitors::DeepCopy < Sass::Tree::Visitors::Base
 
   def visit_mixin(node)
     node.args = node.args.map {|a| a.deep_copy}
-    node.keywords = Hash[node.keywords.map {|k, v| [k, v.deep_copy]}]
+    node.keywords = Sass::Util::NormalizedMap.new(Hash[node.keywords.map {|k, v| [k, v.deep_copy]}])
     yield
   end
 
   def visit_prop(node)
     node.name = node.name.map {|c| c.is_a?(Sass::Script::Tree::Node) ? c.deep_copy : c}
-    node.value = node.value.deep_copy
+    node.value = node.value.map {|c| c.is_a?(Sass::Script::Tree::Node) ? c.deep_copy : c}
     yield
   end
 

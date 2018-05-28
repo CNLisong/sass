@@ -2,6 +2,8 @@ module Sass
   module Selector
     # A comma-separated sequence of selectors.
     class CommaSequence < AbstractSequence
+      @@compound_extend_deprecation = Sass::Deprecation.new
+
       # The comma-separated selector sequences
       # represented by this class.
       #
@@ -96,8 +98,11 @@ module Sass
       #   The node that caused this extension.
       # @param parent_directives [Array<Sass::Tree::DirectiveNode>]
       #   The parent directives containing `extend_node`.
+      # @param allow_compound_target [Boolean]
+      #   Whether `extendee` is allowed to contain compound selectors.
       # @raise [Sass::SyntaxError] if this extension is invalid.
-      def populate_extends(extends, extendee, extend_node = nil, parent_directives = [])
+      def populate_extends(extends, extendee, extend_node = nil, parent_directives = [],
+          allow_compound_target = false)
         extendee.members.each do |seq|
           if seq.members.size > 1
             raise Sass::SyntaxError.new("Can't extend #{seq}: can't extend nested selectors")
@@ -111,13 +116,21 @@ module Sass
           end
 
           sel = sseq.members
+          if !allow_compound_target && sel.length > 1
+            @@compound_extend_deprecation.warn(sseq.filename, sseq.line, <<WARNING)
+Extending a compound selector, #{sseq}, is deprecated and will not be supported in a future release.
+Consider "@extend #{sseq.members.join(', ')}" instead.
+See https://github.com/sass/sass/issues/1599 for details.
+WARNING
+          end
+
           members.each do |member|
             unless member.members.last.is_a?(Sass::Selector::SimpleSequence)
               raise Sass::SyntaxError.new("#{member} can't extend: invalid selector")
             end
 
             extends[sel] = Sass::Tree::Visitors::Cssize::Extend.new(
-              member, sel, extend_node, parent_directives, :not_found)
+              member, sel, extend_node, parent_directives, false)
           end
         end
       end
@@ -146,8 +159,8 @@ module Sass
           Sass::Script::Value::List.new(seq.members.map do |component|
             next if component == "\n"
             Sass::Script::Value::String.new(component.to_s)
-          end.compact, :space)
-        end, :comma)
+          end.compact, separator: :space)
+        end, separator: :comma)
       end
 
       # Returns a string representation of the sequence.
@@ -160,7 +173,10 @@ module Sass
 
       # @see AbstractSequence#to_s
       def to_s(opts = {})
-        @members.map {|m| m.to_s(opts)}.
+        @members.map do |m|
+          next if opts[:placeholder] == false && m.invisible?
+          m.to_s(opts)
+        end.compact.
           join(opts[:style] == :compressed ? "," : ", ").
           gsub(", \n", ",\n")
       end

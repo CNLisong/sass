@@ -39,7 +39,7 @@ module Sass
       # for checking the staleness of several stylesheets at once.
       #
       # @param options [{Symbol => Object}]
-      #   See {file:SASS_REFERENCE.md#sass_options the Sass options documentation}.
+      #   See {file:SASS_REFERENCE.md#Options the Sass options documentation}.
       def initialize(options)
         # URIs that are being actively checked for staleness. Protects against
         # import loops.
@@ -72,7 +72,7 @@ module Sass
       # Returns whether a Sass or SCSS stylesheet has been modified since a given time.
       #
       # @param template_file [String] The location of the Sass or SCSS template.
-      # @param mtime [Fixnum] The modification time to check against.
+      # @param mtime [Time] The modification time to check against.
       # @param importer [Sass::Importers::Base] The importer used to locate the stylesheet.
       #   Defaults to the filesystem importer.
       # @return [Boolean] Whether the stylesheet has been modified.
@@ -103,7 +103,7 @@ module Sass
       # so it's better to use when checking multiple stylesheets at once.
       #
       # @param template_file [String] The location of the Sass or SCSS template.
-      # @param mtime [Fixnum] The modification time to check against.
+      # @param mtime [Time] The modification time to check against.
       # @param importer [Sass::Importers::Base] The importer used to locate the stylesheet.
       #   Defaults to the filesystem importer.
       # @return [Boolean] Whether the stylesheet has been modified.

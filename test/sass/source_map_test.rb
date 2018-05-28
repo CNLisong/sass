@@ -1,4 +1,3 @@
-#!/usr/bin/env ruby
 # -*- coding: utf-8 -*-
 require File.dirname(__FILE__) + '/../test_helper'
 require File.dirname(__FILE__) + '/test_helper'
@@ -37,7 +36,7 @@ JSON
   end
 
   def test_simple_mapping_sass
-    assert_parses_with_sourcemap <<SASS, <<CSS, <<JSON, :syntax => :sass
+    silence_warnings {assert_parses_with_sourcemap <<SASS, <<CSS, <<JSON, :syntax => :sass}
 a
   foo: bar
   /* SOME COMMENT */
@@ -61,7 +60,7 @@ JSON
   end
 
   def test_simple_mapping_with_file_uris
-    uri = Sass::Util.file_uri_from_path(Sass::Util.absolute_path(filename_for_test(:scss)))
+    uri = Sass::Util.file_uri_from_path(File.absolute_path(filename_for_test(:scss)))
     assert_parses_with_sourcemap <<SCSS, <<CSS, <<JSON, :sourcemap => :file
 a {
   foo: bar;
@@ -114,7 +113,7 @@ JSON
 
   def test_mapping_with_directory_sass
     options = {:filename => "sass/style.sass", :output => "css/style.css", :syntax => :sass}
-    assert_parses_with_sourcemap <<SASS, <<CSS, <<JSON, options
+    silence_warnings {assert_parses_with_sourcemap <<SASS, <<CSS, <<JSON, options}
 a
   foo: bar
   /* SOME COMMENT */
@@ -137,9 +136,8 @@ CSS
 JSON
   end
 
-  unless Sass::Util.ruby1_8?
-    def test_simple_charset_mapping_scss
-      assert_parses_with_sourcemap <<SCSS, <<CSS, <<JSON
+  def test_simple_charset_mapping_scss
+    assert_parses_with_sourcemap <<SCSS, <<CSS, <<JSON
 a {
   fóó: bár;
 }
@@ -158,10 +156,10 @@ CSS
 "file": "test.css"
 }
 JSON
-    end
+  end
 
-    def test_simple_charset_mapping_sass
-      assert_parses_with_sourcemap <<SASS, <<CSS, <<JSON, :syntax => :sass
+  def test_simple_charset_mapping_sass
+    assert_parses_with_sourcemap <<SASS, <<CSS, <<JSON, :syntax => :sass
 a
   fóó: bár
 SASS
@@ -179,10 +177,10 @@ CSS
 "file": "test.css"
 }
 JSON
-    end
+  end
 
-    def test_different_charset_than_encoding_scss
-      assert_parses_with_sourcemap(<<SCSS.force_encoding("IBM866"), <<CSS, <<JSON)
+  def test_different_charset_than_encoding_scss
+    assert_parses_with_sourcemap(<<SCSS.force_encoding("IBM866"), <<CSS, <<JSON)
 @charset "IBM866";
 f\x86\x86 {
   \x86: b;
@@ -202,10 +200,10 @@ CSS
 "file": "test.css"
 }
 JSON
-    end
+  end
 
-    def test_different_charset_than_encoding_sass
-      assert_parses_with_sourcemap(<<SASS.force_encoding("IBM866"), <<CSS, <<JSON, :syntax => :sass)
+  def test_different_charset_than_encoding_sass
+    assert_parses_with_sourcemap(<<SASS.force_encoding("IBM866"), <<CSS, <<JSON, :syntax => :sass)
 @charset "IBM866"
 f\x86\x86
   \x86: b
@@ -224,7 +222,6 @@ CSS
 "file": "test.css"
 }
 JSON
-    end
   end
 
   def test_import_sourcemap_scss
@@ -362,8 +359,7 @@ $translucent-red: rgba(255, 0, 0, 0.5);
     }
   }
   {{22}}&:active {{/22}}{
-    {{23}}color{{/23}}: {{24}}#010203 + #040506{{/24}};
-    {{25}}border{{/25}}: {{26}}$width solid black{{/26}};
+    {{23}}border{{/23}}: {{24}}$width solid black{{/24}};
   }
 {{2}}/* SOME COMMENT */{{/2}}
   {{3}}font{{/3}}: {{4}}2px/3px {{/4}}{
@@ -386,8 +382,7 @@ SCSS
     {{19}}a .special:after{{/19}} {
       {{20}}content{{/20}}: {{21}}"I ate 15 pies 2px thick!"{{/21}}; }
   {{22}}a:active{{/22}} {
-    {{23}}color{{/23}}: {{24}}#050709{{/24}};
-    {{25}}border{{/25}}: {{26}}2px solid black{{/26}}; }
+    {{23}}border{{/23}}: {{24}}2px solid black{{/24}}; }
 
 /*# sourceMappingURL=test.css.map */
 CSS
@@ -407,8 +402,7 @@ $translucent-red: rgba(255, 0, 0, 0.5)
     {{19}}&:after{{/19}}
       {{20}}content{{/20}}: {{21}}"I ate #{5 + 10} pies #{$width} thick!"{{/21}}
   {{22}}&:active{{/22}}
-    {{23}}color{{/23}}: {{24}}#010203 + #040506{{/24}}
-    {{25}}border{{/25}}: {{26}}$width solid black{{/26}}
+    {{23}}border{{/23}}: {{24}}$width solid black{{/24}}
 
   {{2}}/* SOME COMMENT */{{/2}}
   {{3}}font{{/3}}: {{4}}2px/3px{{/4}}
@@ -429,8 +423,7 @@ SASS
     {{19}}a .special:after{{/19}} {
       {{20}}content{{/20}}: {{21}}"I ate 15 pies 2px thick!"{{/21}}; }
   {{22}}a:active{{/22}} {
-    {{23}}color{{/23}}: {{24}}#050709{{/24}};
-    {{25}}border{{/25}}: {{26}}2px solid black{{/26}}; }
+    {{23}}border{{/23}}: {{24}}2px solid black{{/24}}; }
 
 /*# sourceMappingURL=test.css.map */
 CSS
@@ -667,7 +660,7 @@ CSS
   end
 
 def test_mixin_sourcemap_sass
-  assert_parses_with_mapping <<'SASS', <<'CSS', :syntax => :sass
+  silence_warnings {assert_parses_with_mapping <<'SASS', <<'CSS', :syntax => :sass}
 =large-text
   :font
     {{2}}size{{/2}}: {{3}}20px{{/3}}
@@ -761,7 +754,7 @@ CSS
   # Regression tests
 
   def test_properties_sass
-    assert_parses_with_mapping <<SASS, <<CSS, :syntax => :sass
+    silence_warnings {assert_parses_with_mapping <<SASS, <<CSS, :syntax => :sass}
 {{1}}.foo{{/1}}
   :{{2}}name{{/2}} {{3}}value{{/3}}
   {{4}}name{{/4}}: {{5}}value{{/5}}
@@ -800,7 +793,7 @@ SCSS
 
     interpolated = engine.to_tree.children.
       first.children.
-      first.value.children[1]
+      first.value.first.children[1]
     assert_equal "123", interpolated.to_sass
     range = interpolated.source_range
     assert_equal 3, range.start_pos.line
@@ -818,6 +811,17 @@ SCSS
     assert_equal 1, list.source_range.end_pos.line
     assert_equal 16, list.source_range.start_pos.offset
     assert_equal 38, list.source_range.end_pos.offset
+  end
+
+  def test_map_source_range
+    engine = Sass::Engine.new(<<-SCSS, :cache => false, :syntax => :scss)
+$margins: (sm: 4px, md: 8px, lg: 16px);
+SCSS
+    expr = engine.to_tree.children.first.expr
+    assert_equal 1, expr.source_range.start_pos.line
+    assert_equal 1, expr.source_range.end_pos.line
+    assert_equal 12, expr.source_range.start_pos.offset
+    assert_equal 38, expr.source_range.end_pos.offset
   end
 
   def test_sources_array_is_uri_escaped
@@ -988,7 +992,11 @@ CSS
   def assert_ranges_equal(expected, actual, lines, prefix)
     assert_positions_equal(expected.start_pos, actual.start_pos, lines, prefix + " start position")
     assert_positions_equal(expected.end_pos, actual.end_pos, lines, prefix + " end position")
-    assert_equal(expected.file, actual.file)
+    if expected.file.nil?
+      assert_nil(actual.file)
+    else
+      assert_equal(expected.file, actual.file)
+    end
   end
 
   def assert_sourcemaps_equal(source, css, expected, actual)

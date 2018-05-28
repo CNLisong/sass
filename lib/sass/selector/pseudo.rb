@@ -1,3 +1,4 @@
+# coding: utf-8
 module Sass
   module Selector
     # A pseudoclass (e.g. `:visited`) or pseudoelement (e.g. `::first-line`)
@@ -48,6 +49,18 @@ module Sass
         @selector = selector
       end
 
+      def unique?
+        type == :class && normalized_name == 'root'
+      end
+
+      # Whether or not this selector should be hidden due to containing a
+      # placeholder.
+      def invisible?
+        # :not() is a special case—if you eliminate all the placeholders from
+        # it, it should match anything.
+        name != 'not' && @selector && @selector.members.all? {|s| s.invisible?}
+      end
+
       # Returns a copy of this with \{#selector} set to \{#new\_selector}.
       #
       # @param new_selector [CommaSequence]
@@ -77,7 +90,7 @@ module Sass
               # more complex cases that likely aren't worth the pain.
               next [] unless sel.name == name && sel.arg == arg
               sel.selector.members
-            when 'has', 'host', 'host-context'
+            when 'has', 'host', 'host-context', 'slotted'
               # We can't expand nested selectors here, because each layer adds an
               # additional layer of semantics. For example, `:has(:has(img))`
               # doesn't match `<div><img></div>` but `:has(img)` does.
@@ -114,6 +127,10 @@ module Sass
 
       # @see Selector#to_s
       def to_s(opts = {})
+        # :not() is a special case, because :not(<nothing>) should match
+        # everything.
+        return '' if name == 'not' && @selector && @selector.members.all? {|m| m.invisible?}
+
         res = (syntactic_type == :class ? ":" : "::") + @name
         if @arg || @selector
           res << "("
@@ -161,7 +178,7 @@ module Sass
             their_seq = Sequence.new(parents + [their_sseq])
             our_seq.superselector?(their_seq)
           end
-        when 'has', 'host', 'host-context'
+        when 'has', 'host', 'host-context', 'slotted'
           # Like :matches, :has (et al) can be a superselector of another
           # selector if its constituent selectors are a superset of those of
           # another :has in the other selector. However, the :matches other case

@@ -1,4 +1,3 @@
-#!/usr/bin/env ruby
 require File.dirname(__FILE__) + '/../test_helper'
 require File.dirname(__FILE__) + '/test_helper'
 require 'mock_importer'
@@ -282,7 +281,7 @@ SCSS
 
     _, sourcemap = engine.render_with_sourcemap('http://1.example.com/style.map')
 
-    uri = Sass::Util.file_uri_from_path(Sass::Util.absolute_path(filename_for_test(:scss)))
+    uri = Sass::Util.file_uri_from_path(File.absolute_path(filename_for_test(:scss)))
     assert_equal <<JSON.strip, sourcemap.to_json(:css_uri => 'css_uri')
 {
 "version": 3,
@@ -309,7 +308,7 @@ SCSS
 
     _, sourcemap = engine.render_with_sourcemap('http://1.example.com/style.map')
 
-    uri = Sass::Util.file_uri_from_path(Sass::Util.absolute_path(filename_for_test(:scss)))
+    uri = Sass::Util.file_uri_from_path(File.absolute_path(filename_for_test(:scss)))
     assert_equal <<JSON.strip, sourcemap.to_json(:css_uri => 'css_uri', :css_path => 'css_path')
 {
 "version": 3,

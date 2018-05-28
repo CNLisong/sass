@@ -69,14 +69,14 @@ module Sass
     # The name of the mixin in which the error occurred.
     # This could be `nil` if the error occurred outside a mixin.
     #
-    # @return [Fixnum]
+    # @return [String]
     def sass_mixin
       sass_backtrace.first[:mixin]
     end
 
     # The line of the Sass template on which the error occurred.
     #
-    # @return [Fixnum]
+    # @return [Integer]
     def sass_line
       sass_backtrace.first[:line]
     end
@@ -142,7 +142,7 @@ module Sass
       msg = lines[0] + lines[1..-1].
         map {|l| "\n" + (" " * "Error: ".size) + l}.join
       "Error: #{msg}" +
-        Sass::Util.enum_with_index(sass_backtrace).map do |entry, i|
+        sass_backtrace.each_with_index.map do |entry, i|
           "\n        #{i == 0 ? 'on' : 'from'} line #{entry[:line]}" +
             " of #{entry[:filename] || default_filename}" +
             (entry[:mixin] ? ", in `#{entry[:mixin]}'" : "")
@@ -153,7 +153,7 @@ module Sass
       # Returns an error report for an exception in CSS format.
       #
       # @param e [Exception]
-      # @param line_offset [Fixnum] The number of the first line of the Sass template.
+      # @param line_offset [Integer] The number of the first line of the Sass template.
       # @return [String] The error report
       # @raise [Exception] `e`, if the
       #   {file:SASS_REFERENCE.md#full_exception-option `:full_exception`} option
@@ -186,7 +186,7 @@ END
         section = e.sass_template.rstrip.split("\n")[min...line_num + 5]
         return e.sass_backtrace_str if section.nil? || section.empty?
 
-        e.sass_backtrace_str + "\n\n" + Sass::Util.enum_with_index(section).
+        e.sass_backtrace_str + "\n\n" + section.each_with_index.
           map {|line, i| "#{line_offset + min + i}: #{line}"}.join("\n")
       end
     end

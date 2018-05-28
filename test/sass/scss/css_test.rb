@@ -1,4 +1,3 @@
-#!/usr/bin/env ruby
 # -*- coding: utf-8 -*-
 require File.dirname(__FILE__) + '/test_helper'
 require 'sass/scss/css_parser'
@@ -49,26 +48,13 @@ baz {bar: baz}
 SCSS
   end
 
-  if Sass::Util.ruby1_8?
-    def test_unicode
-      assert_parses <<SCSS
+  def test_unicode
+    assert_parses <<SCSS
 @charset "UTF-8";
 foo {
   bar: föö bâr; }
 SCSS
-      assert_parses <<SCSS
-foo {
-  bar: föö bâr; }
-SCSS
-    end
-  else
-    def test_unicode
-      assert_parses <<SCSS
-@charset "UTF-8";
-foo {
-  bar: föö bâr; }
-SCSS
-      assert_equal <<CSS, render(<<SCSS)
+    assert_equal <<CSS, render(<<SCSS)
 @charset "UTF-8";
 foo {
   bar: föö bâr; }
@@ -76,7 +62,6 @@ CSS
 foo {
   bar: föö bâr; }
 SCSS
-    end
   end
 
   def test_invisible_comments
@@ -819,10 +804,10 @@ SCSS
     assert_selector_parses('E > F')
     assert_selector_parses('E + F')
     assert_selector_parses('E ~ F')
-    assert_selector_parses('E /foo/ F')
+    silence_warnings {assert_selector_parses('E /foo/ F')}
     silence_warnings {assert_selector_parses('E! > F')}
 
-    assert_selector_parses('E /ns|foo/ F')
+    silence_warnings {assert_selector_parses('E /ns|foo/ F')}
 
     # From http://dev.w3.org/csswg/css-scoping-1/
     assert_selector_parses('E:host(s)')

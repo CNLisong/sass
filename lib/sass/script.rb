@@ -16,12 +16,12 @@ module Sass
     # Parses a string of SassScript
     #
     # @param value [String] The SassScript
-    # @param line [Fixnum] The number of the line on which the SassScript appeared.
+    # @param line [Integer] The number of the line on which the SassScript appeared.
     #   Used for error reporting
-    # @param offset [Fixnum] The number of characters in on `line` that the SassScript started.
+    # @param offset [Integer] The number of characters in on `line` that the SassScript started.
     #   Used for error reporting
     # @param options [{Symbol => Object}] An options hash;
-    #   see {file:SASS_REFERENCE.md#sass_options the Sass options documentation}
+    #   see {file:SASS_REFERENCE.md#Options the Sass options documentation}
     # @return [Script::Tree::Node] The root node of the parse tree
     def self.parse(value, line, offset, options = {})
       Parser.parse(value, line, offset, options)

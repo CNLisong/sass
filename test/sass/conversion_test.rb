@@ -1,9 +1,8 @@
-#!/usr/bin/env ruby
 require File.dirname(__FILE__) + '/../test_helper'
 
 class ConversionTest < MiniTest::Test
   def test_basic
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 foo bar
   baz: bang
   bip: bop
@@ -13,7 +12,7 @@ foo bar {
   bip: bop;
 }
 SCSS
-    assert_renders <<SASS, <<SCSS, :old => true
+    silence_warnings {assert_converts <<SASS, <<SCSS, options: {old: true}}
 foo bar
   :baz bang
   :bip bop
@@ -26,19 +25,19 @@ SCSS
   end
 
   def test_empty_selector
-    assert_renders "foo bar", "foo bar {}"
+    assert_converts "foo bar", "foo bar {}"
   end
 
   def test_empty_directive
-    assert_renders "@media screen", "@media screen {}"
+    assert_converts "@media screen", "@media screen {}"
   end
 
   def test_empty_control_directive
-    assert_renders "@if false", "@if false {}"
+    assert_converts "@if false", "@if false {}"
   end
 
   def test_nesting
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 foo bar
   baz bang
     baz: bang
@@ -58,7 +57,7 @@ SCSS
   end
 
   def test_nesting_with_parent_ref
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 foo bar
   &:hover
     baz: bang
@@ -72,7 +71,7 @@ SCSS
   end
 
   def test_selector_interpolation
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 foo \#{$bar + "baz"}.bip
   baz: bang
 
@@ -90,7 +89,7 @@ SCSS
   end
 
   def test_multiline_selector_with_commas
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 foo bar,
 baz bang
   baz: bang
@@ -101,7 +100,7 @@ baz bang {
 }
 SCSS
 
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 blat
   foo bar,
   baz bang
@@ -136,7 +135,7 @@ SCSS
   end
 
   def test_escaped_selector
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 foo bar
   \\:hover
     baz: bang
@@ -150,7 +149,7 @@ SCSS
   end
 
   def test_property_name_interpolation
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 foo bar
   baz\#{$bang}bip\#{$bop}: 12
 SASS
@@ -161,7 +160,7 @@ SCSS
   end
 
   def test_property_value_interpolation
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 foo bar
   baz: 12 \#{$bang} bip \#{"bop"} blat
 SASS
@@ -172,7 +171,7 @@ SCSS
   end
 
   def test_dynamic_properties
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 foo bar
   baz: 12 $bang "bip"
 SASS
@@ -183,7 +182,7 @@ SCSS
   end
 
   def test_dynamic_properties_with_old
-    assert_renders <<SASS, <<SCSS, :old => true
+    silence_warnings {assert_converts <<SASS, <<SCSS, options: {old: true}}
 foo bar
   :baz 12 $bang "bip"
 SASS
@@ -206,7 +205,7 @@ foo bar {
 }
 SCSS
 
-    assert_scss_to_scss <<OUT, <<IN
+    assert_scss_to_scss <<OUT, source: <<IN
 foo bar {
   baz: bip bam boon;
 }
@@ -233,7 +232,7 @@ foo bar {
 }
 SCSS
 
-    assert_scss_to_scss <<OUT, <<IN
+    assert_scss_to_scss <<OUT, source: <<IN
 foo bar {
   baz: $bip "bam" 12px;
 }
@@ -248,7 +247,7 @@ IN
   end
 
   def test_silent_comments
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 // foo
 
 // bar
@@ -269,7 +268,7 @@ foo bar {
 }
 SCSS
 
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 // foo
 // bar
 //   baz
@@ -288,7 +287,7 @@ foo bar {
 }
 SCSS
 
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 // foo
 // bar
 //   baz
@@ -309,7 +308,7 @@ SCSS
   end
 
   def test_nested_silent_comments
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 foo
   bar: baz
 
@@ -361,7 +360,7 @@ SASS
   end
 
   def test_preserves_triple_slash_comments
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 /// foo
 /// bar
 foo
@@ -378,7 +377,7 @@ SCSS
   end
 
   def test_loud_comments
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 /* foo
 
 /* bar
@@ -429,7 +428,7 @@ foo bar {
 }
 SCSS
 
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 /* foo
  * bar
  *   baz
@@ -450,7 +449,7 @@ SCSS
   end
 
   def test_nested_loud_comments
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 foo
   bar: baz
 
@@ -502,7 +501,7 @@ SASS
   end
 
   def test_preserves_double_star_comments
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 /** foo
  *  bar
 foo
@@ -574,7 +573,7 @@ SCSS
   end
 
   def test_immediately_preceding_comments
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 /* Foo
  * Bar
  * Baz
@@ -589,7 +588,7 @@ SASS
 }
 SCSS
 
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 // Foo
 // Bar
 // Baz
@@ -628,7 +627,7 @@ SASS
   end
 
   def test_debug
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 foo
   @debug 12px
 
@@ -643,7 +642,7 @@ SCSS
   end
 
   def test_error
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 foo
   @error "oh no!"
 
@@ -658,7 +657,7 @@ SCSS
   end
 
   def test_directive_without_children
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 foo
   @foo #bar "baz"
 
@@ -673,7 +672,7 @@ SCSS
   end
 
   def test_directive_with_prop_children
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 foo
   @foo #bar "baz"
     a: b
@@ -693,7 +692,7 @@ SCSS
   end
 
   def test_directive_with_rule_children
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 foo
   @foo #bar "baz"
     #blat
@@ -723,7 +722,7 @@ SCSS
   end
 
   def test_directive_with_rule_and_prop_children
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 foo
   @foo #bar "baz"
     g: h
@@ -761,7 +760,7 @@ SCSS
   end
 
   def test_charset
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 @charset "utf-8"
 SASS
 @charset "utf-8";
@@ -769,7 +768,7 @@ SCSS
   end
 
   def test_for
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 foo
   @for $a from $b to $c
     a: b
@@ -792,7 +791,7 @@ SCSS
   end
 
   def test_while
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 foo
   @while flaz($a + $b)
     a: b
@@ -815,7 +814,7 @@ SCSS
   end
 
   def test_if
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 foo
   @if $foo or $bar
     a: b
@@ -846,7 +845,7 @@ SCSS
   end
 
   def test_each
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 a
   @each $number in 1px 2px 3px 4px
     b: $number
@@ -880,7 +879,7 @@ SCSS
   end
 
   def test_import
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 @import foo
 
 @import url(bar.css)
@@ -897,7 +896,7 @@ foo {
 }
 SCSS
 
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 @import foo.css
 
 @import url(bar.css)
@@ -920,13 +919,13 @@ SCSS
   end
 
   def test_import_as_directive_in_scss
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 @import "foo.css" print
 SASS
 @import "foo.css" print;
 SCSS
 
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 @import url(foo.css) screen, print
 SASS
 @import url(foo.css) screen, print;
@@ -934,7 +933,7 @@ SCSS
   end
 
   def test_adjacent_imports
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 @import foo.sass
 @import bar.scss
 @import baz
@@ -946,7 +945,7 @@ SCSS
   end
 
   def test_non_adjacent_imports
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 @import foo.sass
 
 @import bar.scss
@@ -962,7 +961,7 @@ SCSS
   end
 
   def test_import_with_interpolation
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 $family: unquote("Droid+Sans")
 
 @import url("http://fonts.googleapis.com/css?family=\#{$family}")
@@ -974,7 +973,7 @@ SCSS
   end
 
   def test_extend
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 .foo
   @extend .bar
 
@@ -989,7 +988,7 @@ SCSS
   end
 
   def test_comma_extendee
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 .baz
   @extend .foo, .bar
 SASS
@@ -1000,7 +999,7 @@ SCSS
   end
 
   def test_argless_mixin_definition
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 =foo-bar
   baz
     a: b
@@ -1038,7 +1037,7 @@ SASS
   end
 
   def test_mixin_definition_without_defaults
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 =foo-bar($baz, $bang)
   baz
     a: $baz $bang
@@ -1052,7 +1051,7 @@ SCSS
   end
 
   def test_mixin_definition_with_defaults
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 =foo-bar($baz, $bang: 12px)
   baz
     a: $baz $bang
@@ -1078,7 +1077,7 @@ SASS
   end
 
   def test_argless_mixin_include
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 foo
   +foo-bar
 
@@ -1093,7 +1092,7 @@ SCSS
   end
 
   def test_mixin_include
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 foo
   +foo-bar(12px, "blaz")
 
@@ -1108,7 +1107,7 @@ SCSS
   end
 
   def test_mixin_include_with_keyword_args
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 foo
   +foo-bar(12px, "blaz", $blip: blap, $bloop: blop)
 
@@ -1127,7 +1126,7 @@ SCSS
   end
 
   def test_consecutive_mixin_includes
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 foo
   +foo-bar
   +foo-bar
@@ -1144,7 +1143,7 @@ SCSS
   end
 
   def test_mixin_include_with_hyphen_conversion_keyword_arg
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 foo
   +foo-bar($a-b_c: val)
 
@@ -1159,7 +1158,7 @@ SCSS
   end
 
   def test_argless_function_definition
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 @function foo()
   $var: 1 + 1
 
@@ -1174,7 +1173,7 @@ SCSS
   end
 
   def test_function_definition_without_defaults
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 @function foo($var1, $var2)
   @if $var1
     @return $var1 + $var2
@@ -1188,7 +1187,7 @@ SCSS
   end
 
   def test_function_definition_with_defaults
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 @function foo($var1, $var2: foo)
   @if $var1
     @return $var1 + $var2
@@ -1202,7 +1201,7 @@ SCSS
   end
 
   def test_variable_definition
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 $var1: 12px + 15px
 
 foo
@@ -1221,7 +1220,7 @@ SCSS
   end
 
   def test_guarded_variable_definition
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 $var1: 12px + 15px !default
 
 foo
@@ -1240,7 +1239,7 @@ SCSS
   end
 
   def test_multiple_variable_definitions
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 $var1: foo
 $var2: bar
 $var3: baz
@@ -1258,7 +1257,7 @@ SCSS
   end
 
   def test_division_asserted_with_parens
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 foo
   a: (1px / 2px)
 SASS
@@ -1269,7 +1268,7 @@ SCSS
   end
 
   def test_division_not_asserted_when_unnecessary
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 $var: 1px / 2px
 
 foo
@@ -1282,7 +1281,7 @@ foo {
 }
 SCSS
 
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 $var: 1px
 
 foo
@@ -1295,7 +1294,7 @@ foo {
 }
 SCSS
 
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 foo
   a: 1 + 1px / 2px
 SASS
@@ -1306,7 +1305,7 @@ SCSS
   end
 
   def test_literal_slash
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 foo
   a: 1px / 2px
 SASS
@@ -1316,7 +1315,7 @@ foo {
 SCSS
 
     # Regression test for issue 1787
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 foo
   a: 1px / 2px 3px
 SASS
@@ -1327,7 +1326,7 @@ SCSS
   end
 
   def test_directive_with_interpolation
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 $baz: 12
 
 @foo bar\#{$baz} qux
@@ -1342,7 +1341,7 @@ SCSS
   end
 
   def test_media_with_interpolation
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 $baz: 12
 
 @media bar\#{$baz}
@@ -1357,7 +1356,7 @@ SCSS
   end
 
   def test_media_with_expressions
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 $media1: screen
 $media2: print
 $var: -webkit-min-device-pixel-ratio
@@ -1378,7 +1377,7 @@ SCSS
   end
 
   def test_media_with_feature
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 @media screen and (-webkit-transform-3d)
   a: b
 SASS
@@ -1389,7 +1388,7 @@ SCSS
   end
 
   def test_supports_with_expressions
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 $query: "(feature1: val)"
 $feature: feature2
 $val: val
@@ -1413,7 +1412,7 @@ SCSS
   # Hacks
 
   def test_declaration_hacks
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 foo
   _name: val
   *name: val
@@ -1436,7 +1435,7 @@ SCSS
   end
 
   def test_old_declaration_hacks
-    assert_renders <<SASS, <<SCSS, :old => true
+    silence_warnings {assert_converts <<SASS, <<SCSS, options: {old: true}}
 foo
   :_name val
   :*name val
@@ -1456,7 +1455,7 @@ SCSS
 
   def test_selector_hacks
     assert_selector_renders = lambda do |s|
-      assert_renders <<SASS, <<SCSS
+      assert_converts <<SASS, <<SCSS
 #{s}
   a: b
 SASS
@@ -1483,7 +1482,7 @@ SCSS
   end
 
   def test_nested_properties
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 div
   before: before
   background:
@@ -1504,7 +1503,7 @@ SCSS
   end
 
   def test_dasherize
-    assert_sass_to_scss(<<SCSS, <<SASS, :dasherize => true)
+    assert_sass_to_scss(<<SCSS, <<SASS, options: {dasherize: true})
 @mixin under-scored-mixin($under-scored-arg: $under-scored-default) {
   bar: $under-scored-arg;
 }
@@ -1539,7 +1538,7 @@ SASS
   end
 
   def test_loud_comment_conversion
-    assert_renders(<<SASS, <<SCSS)
+    assert_converts(<<SASS, <<SCSS)
 /*! \#{"interpolated"}
 SASS
 /*! \#{"interpolated"} */
@@ -1547,7 +1546,7 @@ SCSS
   end
 
   def test_content_conversion
-    assert_renders(<<SASS, <<SCSS)
+    assert_converts(<<SASS, <<SCSS)
 $color: blue
 
 =context($class, $color: red)
@@ -1594,7 +1593,7 @@ SCSS
   end
 
   def test_placeholder_conversion
-    assert_renders(<<SASS, <<SCSS)
+    assert_converts(<<SASS, <<SCSS)
 #content a%foo.bar
   color: blue
 SASS
@@ -1605,7 +1604,7 @@ SCSS
   end
 
   def test_reference_selector
-    assert_renders(<<SASS, <<SCSS)
+    assert_converts(<<SASS, <<SCSS)
 foo /bar|baz/ bang
   a: b
 SASS
@@ -1616,7 +1615,7 @@ SCSS
   end
 
   def test_subject
-    assert_renders(<<SASS, <<SCSS)
+    assert_converts(<<SASS, <<SCSS)
 foo bar! baz
   a: b
 SASS
@@ -1627,7 +1626,7 @@ SCSS
   end
 
   def test_placeholder_interoplation_conversion
-    assert_renders(<<SASS, <<SCSS)
+    assert_converts(<<SASS, <<SCSS)
 $foo: foo
 
 %\#{$foo}
@@ -1649,7 +1648,7 @@ SCSS
   end
 
   def test_indent
-    assert_renders <<SASS, <<SCSS, :indent => "    "
+    assert_converts <<SASS, <<SCSS, options: {indent: "    "}
 foo bar
     baz bang
         baz: bang
@@ -1667,7 +1666,7 @@ foo bar {
 }
 SCSS
 
-    assert_renders <<SASS, <<SCSS, :indent => "\t"
+    assert_converts <<SASS, <<SCSS, options: {indent: "\t"}
 foo bar
 	baz bang
 		baz: bang
@@ -1685,7 +1684,7 @@ foo bar {
 }
 SCSS
 
-    assert_sass_to_scss <<SCSS, <<SASS, :indent => "    "
+    assert_sass_to_scss <<SCSS, <<SASS, options: {indent: "    "}
 foo bar {
     baz bang {
         baz: bang;
@@ -1703,7 +1702,7 @@ foo bar
   blat: boo
 SASS
 
-    assert_sass_to_scss <<SCSS, <<SASS, :indent => "\t"
+    assert_sass_to_scss <<SCSS, <<SASS, options: {indent: "\t"}
 foo bar {
 	baz bang {
 		baz: bang;
@@ -1721,7 +1720,7 @@ foo bar
   blat: boo
 SASS
 
-    assert_scss_to_sass <<SASS, <<SCSS, :indent => "    "
+    assert_scss_to_sass <<SASS, <<SCSS, options: {indent: "    "}
 foo bar
     baz bang
         baz: bang
@@ -1739,7 +1738,7 @@ foo bar {
 }
 SCSS
 
-    assert_scss_to_sass <<SASS, <<SCSS, :indent => "\t"
+    assert_scss_to_sass <<SASS, <<SCSS, options: {indent: "\t"}
 foo bar
 	baz bang
 		baz: bang
@@ -1759,7 +1758,7 @@ SCSS
   end
 
   def test_extend_with_optional
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 foo
   @extend .bar !optional
 SASS
@@ -1770,7 +1769,7 @@ SCSS
   end
 
   def test_mixin_var_args
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 =foo($args...)
   a: b
 
@@ -1799,7 +1798,7 @@ SCSS
   end
 
   def test_mixin_var_kwargs
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 =foo($a: b, $c: d)
   a: $a
   c: $c
@@ -1823,7 +1822,7 @@ SCSS
   end
 
   def test_function_var_args
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 @function foo($args...)
   @return foo
 
@@ -1850,7 +1849,7 @@ SCSS
   end
 
   def test_function_var_kwargs
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 @function foo($a: b, $c: d)
   @return foo
 
@@ -1870,7 +1869,7 @@ SCSS
   end
 
   def test_at_root
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 .foo
   @at-root
     .bar
@@ -1894,7 +1893,7 @@ SCSS
   end
 
   def test_at_root_with_selector
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 .foo
   @at-root .bar
     a: b
@@ -1908,7 +1907,7 @@ SCSS
   end
 
   def test_at_root_without
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 .foo
   @at-root (without: media rule)
     a: b
@@ -1922,7 +1921,7 @@ SCSS
   end
 
   def test_at_root_with
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 .foo
   @at-root (with: media rule)
     a: b
@@ -1936,7 +1935,7 @@ SCSS
   end
 
   def test_function_var_kwargs_with_list
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 @function foo($a: b, $c: d)
   @return $a, $c
 
@@ -1954,7 +1953,7 @@ SCSS
   end
 
   def test_keyframes
-    assert_renders(<<SASS, <<SCSS)
+    assert_converts(<<SASS, <<SCSS)
 @keyframes identifier
   0%
     top: 0
@@ -1995,7 +1994,7 @@ SCSS
   ## Regression Tests
 
   def test_list_in_args
-    assert_renders(<<SASS, <<SCSS)
+    assert_converts(<<SASS, <<SCSS)
 +mixin((a, b, c))
 
 +mixin($arg: (a, b, c))
@@ -2011,7 +2010,7 @@ SCSS
   end
 
   def test_media_query_with_expr
-    assert_renders <<SASS, <<SCSS
+    assert_converts <<SASS, <<SCSS
 @media foo and (bar: baz)
   a: b
 SASS
@@ -2022,7 +2021,7 @@ SCSS
   end
 
   def test_nested_if_statements
-    assert_renders(<<SASS, <<SCSS)
+    assert_converts(<<SASS, <<SCSS)
 @if $foo
   one
     a: b
@@ -2055,7 +2054,7 @@ SCSS
   end
 
   def test_comment_indentation
-    assert_renders(<<SASS, <<SCSS, :indent => '    ')
+    assert_converts(<<SASS, <<SCSS, options: {indent: '    '})
 foo
     // bar
     /* baz
@@ -2070,27 +2069,27 @@ SCSS
   end
 
   def test_keyword_arguments
-    assert_renders(<<SASS, <<SCSS, :dasherize => true)
+    assert_converts(<<SASS, <<SCSS, options: {dasherize: true})
 $foo: foo($dash-ed: 2px)
 SASS
 $foo: foo($dash-ed: 2px);
 SCSS
-    assert_scss_to_sass(<<SASS, <<SCSS, :dasherize => true)
+    assert_scss_to_sass(<<SASS, <<SCSS, options: {dasherize: true})
 $foo: foo($dash-ed: 2px)
 SASS
 $foo: foo($dash_ed: 2px);
 SCSS
-    assert_sass_to_scss(<<SCSS, <<SASS, :dasherize => true)
+    assert_sass_to_scss(<<SCSS, <<SASS, options: {dasherize: true})
 $foo: foo($dash-ed: 2px);
 SCSS
 $foo: foo($dash_ed: 2px)
 SASS
-    assert_renders(<<SASS, <<SCSS)
+    assert_converts(<<SASS, <<SCSS)
 $foo: foo($under_scored: 1px)
 SASS
 $foo: foo($under_scored: 1px);
 SCSS
-    assert_renders(<<SASS, <<SCSS)
+    assert_converts(<<SASS, <<SCSS)
 $foo: foo($dash-ed: 2px, $under_scored: 1px)
 SASS
 $foo: foo($dash-ed: 2px, $under_scored: 1px);
@@ -2098,7 +2097,7 @@ SCSS
   end
 
   def test_ambiguous_negation
-    assert_renders(<<SASS, <<SCSS, :indent => '    ')
+    assert_converts(<<SASS, <<SCSS, options: {indent: '    '})
 foo
     ok: -$foo
     comma: 10px, -$foo
@@ -2113,7 +2112,7 @@ SCSS
   end
 
   def test_variable_with_global
-    assert_renders(<<SASS, <<SCSS)
+    assert_converts(<<SASS, <<SCSS)
 $var: 1
 
 foo
@@ -2130,59 +2129,10 @@ SCSS
   end
 
   def test_import_with_supports_clause
-    assert_renders(<<'SASS', <<'SCSS')
+    assert_converts(<<'SASS', <<'SCSS')
 @import url("fallback-layout.css") supports(not (display: #{$display-type}))
 SASS
 @import url("fallback-layout.css") supports(not (display: #{$display-type}));
 SCSS
-  end
-
-  private
-
-  def assert_sass_to_sass(sass, options = {})
-    assert_equal(sass.rstrip, to_sass(sass, options).rstrip,
-      "Expected Sass to transform to itself")
-  end
-
-  def assert_scss_to_sass(sass, scss, options = {})
-    assert_equal(sass.rstrip, to_sass(scss, options.merge(:syntax => :scss)).rstrip,
-      "Expected SCSS to transform to Sass")
-  end
-
-  def assert_scss_to_scss(scss, in_scss = nil, options = nil)
-    if in_scss.is_a?(Hash)
-      options = in_scss
-      in_scss = nil
-    end
-
-    in_scss ||= scss
-    options ||= {}
-
-    assert_equal(scss.rstrip, to_scss(in_scss, options.merge(:syntax => :scss)).rstrip,
-      "Expected SCSS to transform to #{scss == in_scss ? 'itself' : 'SCSS'}")
-  end
-
-  def assert_sass_to_scss(scss, sass, options = {})
-    assert_equal(scss.rstrip, to_scss(sass, options).rstrip,
-      "Expected Sass to transform to SCSS")
-  end
-
-  def assert_renders(sass, scss, options = {})
-    assert_sass_to_sass(sass, options)
-    assert_scss_to_sass(sass, scss, options)
-    assert_scss_to_scss(scss, options)
-    assert_sass_to_scss(scss, sass, options)
-  end
-
-  def to_sass(scss, options = {})
-    Sass::Util.silence_sass_warnings do
-      Sass::Engine.new(scss, options).to_tree.to_sass(options)
-    end
-  end
-
-  def to_scss(sass, options = {})
-    Sass::Util.silence_sass_warnings do
-      Sass::Engine.new(sass, options).to_tree.to_scss(options)
-    end
   end
 end

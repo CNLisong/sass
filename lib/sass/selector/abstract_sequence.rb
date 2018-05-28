@@ -8,7 +8,7 @@ module Sass
     class AbstractSequence
       # The line of the Sass template on which this selector was declared.
       #
-      # @return [Fixnum]
+      # @return [Integer]
       attr_reader :line
 
       # The name of the file in which this selector was declared.
@@ -19,8 +19,8 @@ module Sass
       # Sets the line of the Sass template on which this selector was declared.
       # This also sets the line for all child selectors.
       #
-      # @param line [Fixnum]
-      # @return [Fixnum]
+      # @param line [Integer]
+      # @return [Integer]
       def line=(line)
         members.each {|m| m.line = line}
         @line = line
@@ -42,7 +42,7 @@ module Sass
       # Subclasses should define `#_hash` rather than overriding this method,
       # which automatically handles memoizing the result.
       #
-      # @return [Fixnum]
+      # @return [Integer]
       def hash
         @_hash ||= _hash
       end
@@ -59,12 +59,11 @@ module Sass
       end
       alias_method :==, :eql?
 
-      # Whether or not this selector sequence contains a placeholder selector.
-      # Checks recursively.
-      def has_placeholder?
-        @has_placeholder ||= members.any? do |m|
-          next m.has_placeholder? if m.is_a?(AbstractSequence)
-          next m.selector && m.selector.has_placeholder? if m.is_a?(Pseudo)
+      # Whether or not this selector should be hidden due to containing a
+      # placeholder.
+      def invisible?
+        @invisible ||= members.any? do |m|
+          next m.invisible? if m.is_a?(AbstractSequence) || m.is_a?(Pseudo)
           m.is_a?(Placeholder)
         end
       end
@@ -73,6 +72,8 @@ module Sass
       #
       # @param opts [Hash] rendering options.
       # @option opts [Symbol] :style The css rendering style.
+      # @option placeholders [Boolean] :placeholders
+      #   Whether to include placeholder selectors. Defaults to `true`.
       # @return [String]
       def to_s(opts = {})
         Sass::Util.abstract(self)
@@ -83,7 +84,7 @@ module Sass
       # The base is given by {Sass::Selector::SPECIFICITY_BASE}. This can be a
       # number or a range representing possible specificities.
       #
-      # @return [Fixnum, Range]
+      # @return [Integer, Range]
       def specificity
         _specificity(members)
       end

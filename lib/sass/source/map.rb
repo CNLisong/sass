@@ -37,7 +37,7 @@ module Sass::Source
 
     # Shifts all output source ranges forward one or more lines.
     #
-    # @param delta [Fixnum] The number of lines to shift the ranges forward.
+    # @param delta [Integer] The number of lines to shift the ranges forward.
     def shift_output_lines(delta)
       return if delta == 0
       @data.each do |m|
@@ -49,7 +49,7 @@ module Sass::Source
     # Shifts any output source ranges that lie on the first line forward one or
     # more characters on that line.
     #
-    # @param delta [Fixnum] The number of characters to shift the ranges
+    # @param delta [Integer] The number of characters to shift the ranges
     #   forward.
     def shift_output_offsets(delta)
       return if delta == 0
@@ -93,8 +93,8 @@ module Sass::Source
         raise ArgumentError.new("Sass::Source::Map#to_json requires either " \
           "the :css_uri option or both the :css_path and :soucemap_path options.")
       end
-      css_path &&= Sass::Util.pathname(Sass::Util.absolute_path(css_path))
-      sourcemap_path &&= Sass::Util.pathname(Sass::Util.absolute_path(sourcemap_path))
+      css_path &&= Sass::Util.pathname(File.absolute_path(css_path))
+      sourcemap_path &&= Sass::Util.pathname(File.absolute_path(sourcemap_path))
       css_uri ||= Sass::Util.file_uri_from_path(
         Sass::Util.relative_path_from(css_path, sourcemap_path.dirname))
 

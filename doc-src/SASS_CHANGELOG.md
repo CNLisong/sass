@@ -3,7 +3,159 @@
 * Table of contents
 {:toc}
 
-## 3.4.23 (UNRELEASED)
+## 3.5.6 (22 March 2018)
+
+* Allow `!` in custom property values.
+
+* `var()` may now be passed in place of multiple arguments to `rgb()`, `rgba()`,
+  `hsl()` and `hsla()`.
+  
+* Don't crash on custom properties that aren't followed by semicolons.
+  
+* Don't crash when normalizing numbers with complex units.
+  
+* Don't crash on `$x % 0`.
+
+## 3.5.5 (4 January 2018)
+
+* Emit a warning when `&&` is used, since it's probably not what the user means.
+
+* Add a suggested replacement for extended compound selectors.
+
+* Fix a bug where an unparseable selector produced an unuseful error.
+
+## 3.5.4 (15 December 2017)
+
+* `round()` now returns the correct results for negative numbers that should
+  round down.
+
+* Avoid thread-unsafely modifying `$stderr`.
+
+## 3.5.3 (26 October 2017)
+
+* Generate correct source maps for map literals.
+
+## 3.5.2 (4 October 2017)
+
+* Properly parse CSS variables that begin with interpolation (for example,
+  `--#{$foo}: ...`).
+
+## 3.5.1 (13 July 2017)
+
+* Avoid conflicts with the `listen` gem.
+
+## 3.5.0 (12 July 2017)
+
+* Default to ten digits of numeric precision.
+
+* Combine ids and `:root` when unifying selectors with `@extend` and selector
+  functions.
+
+* It's no longer an error to `@extend` a selector that exists in the stylesheet,
+  but for which unification fails.
+
+* Add a `$weight` parameter to `invert()`.
+
+* The last argument in an argument list can now have a trailing comma.
+
+* Allow `var()` to be passed to `rgb()`, `rgba()`, `hsl()`, and `hsla()`.
+
+* Add support for the `::slotted()` pseudo-element.
+
+* Add support for CSS's grid template areas and named lines. We support
+  this syntax through a new type of list called a "bracketed list".
+  Bracketed lists can be created by wrapping a list with square brackets.
+  For example: `[this is bracketed]` and `[this, is, also, bracketed]`.
+  Bracketed lists will output their square brackets when used as a CSS
+  value. Bracketed lists may be either space-separated or comma-separated.
+  The `is-bracketed()` function, when passed a list will return a boolean
+  indicating whether that list will output with brackets. The `join()`
+  function now accepts a `$bracketed` parameter that controls whether the
+  returned list has brackets.
+
+* A new function `content-exists()` will return true when called within
+  a mixin that was passed content for use by the `@content` directive.
+
+* Passing a string to `call($function-name, $args...)` indicating which
+  function to invoke is now deprecated. Instead pass a function reference
+  returned from `get-function($function-name)`.  This allows function name
+  resolution to be performed in the correct lexical context and then
+  invoked in a different context. This is required so that the
+  module-based resolver in Sass 4.0 will invoke the correct function when
+  calling across module boundaries. Developers of frameworks that use
+  `call` should not do the function lookup for callers of their framework;
+  this is likely to result in a situation where the framework cannot
+  resolve the function in 4.0.
+
+* Values that can be interpreted as
+  [hex colors with alpha channels][hex alpha spec] and also as
+  [ID values][directional focus spec], such as `#abcd`, now emit deprecation
+  warnings in preparation for being parsed differently Sass 3.6. They were
+  previously parsed as strings, and in 3.6 they will be parsed as colors
+  instead.
+
+* Pseudo selectors that take arguments now allow any
+  [`<declaration-value>`][declaration-value] production in their argument list.
+  This will provide better forwards-compatibility for future CSS syntax.
+
+* Pseudo selectors that take selectors as arguments will no longer always be
+  eliminated if they contain placeholder selectors that aren't extended.
+  Instead, they'll be reduced to valid CSS selectors if possible.
+
+* Generated transparent colors will now be emitted as `rgba(0, 0, 0, 0)` rather
+  than `transparent`. This works around a bug wherein IE incorrectly handles the
+  latter format.
+
+* The indented syntax now allows different indentation to be used for different
+  lines, as long as they define a consistent tree structure.
+
+[hex alpha spec]: https://drafts.csswg.org/css-color/#hex-notation
+[directional focus spec]: https://www.w3.org/TR/css-ui-3/#nav-dir
+
+### Backwards Incompatibilities -- Must Read!
+
+* The way [CSS variables][] are handled has changed to better correspond to the
+  CSS spec. They no longer allow arbitrary SassScript in their values; instead,
+  almost all text in the property values will be passed through unchanged to
+  CSS. The only exception is `#{}`, which will inject a SassScript value as
+  before.
+
+## 3.4.25 (7 July 2017)
+
+* Fix a bug where `*` wouldn't always be eliminated during selector unification.
+
+### Deprecations -- Must Read!
+
+* Extending compound selectors such as `.a.b` is deprecated. This never followed
+  the stated semantics of extend: elements that match the extending selector are
+  styled as though they matches the extended selector.
+
+  When you write `h1 {@extend .a.b}`, this *should* mean that all `h1` elements
+  are styled as though they match `.a.b`—that is, as though they have `class="a
+  b"`, which means they'd match both `.a` and `.b` separately. But instead we
+  extend only selectors that contain *both* `.a` and `.b`, which is incorrect.
+
+* Color arithmetic is deprecated. Channel-by-channel arithmetic doesn't
+  correspond closely to intuitive understandings of color. Sass's suite of
+  [color functions][] are a much cleaner and more comprehensible way of
+  manipulating colors dynamically.
+
+* The reference combinator, `/foo/`, is deprecated since it hasn't been in the
+  CSS specification for some time.
+
+* The old-style `:name value` property syntax is deprecated. This syntax is not
+  widely used, and is unnecessarily different from CSS.
+
+[color functions]: http://sass-lang.com/documentation/Sass/Script/Functions.html#other_color_functions
+
+## 3.4.24 (18 May 2017)
+
+* Elements without a namespace (such as `div`) are no longer unified with
+  elements with the empty namespace (such as `|div`). This unification didn't
+  match the results returned by `is-superselector()`, and was not guaranteed to
+  be valid.
+
+## 3.4.23 (19 December 2016)
 
 * The Sass logger is now instantiated on a per-thread/per-fiber basis
   and can now be configured to output to any IO object. This can help
@@ -21,6 +173,14 @@
 * The `supports(...)` clause in `@import` statements now allows bare
   declarations as per the CSS specification.
   [Issue #1967](https://github.com/sass/sass/issues/1967)
+
+* Fix a bug where, under some circumstances, `str-slice()` would go to the end
+  of the string even if `$end-at` was set.
+
+* Fix conversions between numbers with `dpi`, `dpcm`, and `dppx` units.
+  Previously these conversions were inverted.
+
+* Support `url()`s containing quoted strings within unknown directives.
 
 ## 3.4.22 (28 March 2016)
 
